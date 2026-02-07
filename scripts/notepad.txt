@@ -1,1 +1,20 @@
-/data/sld/homes/vguigon/work/scripts/run_pipeline.sh --model-stem tm_visual_vs_fixation_compcor --subjects "000 001 002 003" --smooth 6:run:iso --thr-mode p-unc --p-unc 0.005 --steps all
+/data/sld/homes/vguigon/work/scripts/run_pipeline.sh \
+  --model-stem tm_visual_vs_fixation_compcor \
+  --model-json /data/sld/homes/vguigon/work/fitlins_models/tm_visual_vs_fixation_compcor_smdl.json \
+  --subjects "000 001 002 003" \
+  --bids-dir /data/sld/homes/vguigon/work/slb_bids \
+  --deriv-root /data/sld/homes/collab/slb/derivatives \
+  --deriv-subdir fmriprep \
+  --deriv-label fmriprep \
+  --out-parent /data/sld/homes/vguigon/work/fitlins_derivatives \
+  --out-suffix tm_visual_vs_fixation_compcor_s6 \
+  --smooth "6:run:iso" \
+  --space MNI152NLin2009cAsym \
+  --ncpus 8 --mem-gb 16 --debug \
+  --plot-nodes-group "node-subjectLevel" \
+  --plot-glob '**/*stat-t*_statmap.nii*' \
+  --plot-outdir-group /data/sld/homes/vguigon/work/figures/tm_group_visualGtFixation_s6_t_p001 \
+  --contrasts "visualGtFixation" \
+  --thr-mode p-unc --p-unc 0.001 \
+  --display-mode ortho \
+  --steps plot-group
