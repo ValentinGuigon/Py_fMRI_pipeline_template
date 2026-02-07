@@ -1,0 +1,30 @@
+{
+  "Name": "tmth_fixation_only",
+  "BIDSModelVersion": "1.0.0",
+  "Description": "Sanity GLM: fixation regressor only for TM/TH tasks.",
+  "Input": {
+    "task": ["tm1", "tm2", "th1", "th2"]
+  },
+  "Nodes": [
+    {
+      "Level": "Run",
+      "Name": "run_level",
+      "GroupBy": ["subject", "session", "task", "run"],
+      "Transformations": [
+        { "Name": "Factor", "Input": ["trial_type"] }
+      ],
+      "Model": {
+        "X": ["trial_type.fixation"]
+      },
+      "Contrasts": [
+        {
+          "Name": "fixation_gt_baseline",
+          "ConditionList": ["trial_type.fixation"],
+          "Weights": [1],
+          "Test": "t"
+        }
+      ]
+    }
+  ]
+}
+

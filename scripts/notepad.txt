@@ -1,0 +1,1 @@
+/data/sld/homes/vguigon/work/scripts/run_pipeline.sh --model-stem tm_visual_vs_fixation_compcor --subjects "000 001 002 003" --smooth 6:run:iso --thr-mode p-unc --p-unc 0.005 --steps all

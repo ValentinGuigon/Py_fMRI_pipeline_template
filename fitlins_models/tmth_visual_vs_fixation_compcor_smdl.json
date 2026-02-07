@@ -1,0 +1,130 @@
+{
+  "Name": "tmthVisualVsFixationCompCor",
+  "BIDSModelVersion": "1.0.0",
+  "Description": "TM/TH visual epochs (choice+wait+feedback) contrasted against fixation, with motion + FD + aCompCor (+ cosine drifts if present).",
+  "Input": {
+    "task": [
+      "tm1",
+      "tm2",
+      "th1",
+      "th2"
+    ],
+    "subject": [
+      "000",
+      "001",
+      "002",
+      "003"
+    ]
+  },
+  "Nodes": [
+    {
+      "Level": "Run",
+      "Name": "runLevel",
+      "GroupBy": [
+        "subject",
+        "task",
+        "run"
+      ],
+      "Transformations": {
+        "Transformer": "pybids-transforms-v1",
+        "Instructions": [
+          {
+            "Name": "Factor",
+            "Input": [
+              "trial_type"
+            ]
+          },
+          {
+            "Name": "Convolve",
+            "Input": [
+              "trial_type.choice",
+              "trial_type.wait",
+              "trial_type.feedback",
+              "trial_type.fixation"
+            ],
+            "Model": "spm"
+          }
+        ]
+      },
+      "Model": {
+        "X": [
+          "trial_type.choice",
+          "trial_type.wait",
+          "trial_type.feedback",
+          "trial_type.fixation",
+          "framewise_displacement",
+          "trans_x",
+          "trans_y",
+          "trans_z",
+          "rot_x",
+          "rot_y",
+          "rot_z",
+          "a_comp_cor_00",
+          "a_comp_cor_01",
+          "a_comp_cor_02",
+          "a_comp_cor_03",
+          "a_comp_cor_04",
+          "a_comp_cor_05",
+          "cosine00",
+          "cosine01",
+          "cosine02",
+          "cosine03"
+        ],
+        "Type": "glm"
+      },
+      "Contrasts": [
+        {
+          "Name": "visualGtFixation",
+          "ConditionList": [
+            "trial_type.choice",
+            "trial_type.wait",
+            "trial_type.feedback",
+            "trial_type.fixation"
+          ],
+          "Weights": [
+            0.3333333333333333,
+            0.3333333333333333,
+            0.3333333333333333,
+            -1.0
+          ],
+          "Test": "t"
+        }
+      ]
+    },
+    {
+      "Level": "Subject",
+      "Name": "subjectLevel",
+      "GroupBy": [
+        "subject",
+        "task",
+        "contrast"
+      ],
+      "Model": {
+        "X": [
+          1
+        ],
+        "Type": "meta"
+      },
+      "DummyContrasts": {
+        "Test": "t"
+      }
+    },
+    {
+      "Level": "Dataset",
+      "Name": "groupLevel",
+      "GroupBy": [
+        "task",
+        "contrast"
+      ],
+      "Model": {
+        "X": [
+          1
+        ],
+        "Type": "glm"
+      },
+      "DummyContrasts": {
+        "Test": "t"
+      }
+    }
+  ]
+}

@@ -1,0 +1,82 @@
+Node: fitlins_wf.loader
+Working directory: /tmp/tmp4rchioa4/fitlins_wf/loader
+
+Node inputs:
+
+database_path = /tmp/tmp4rchioa4/dbcache
+model = {'Name': 'tmVisualVsFixation_SubjectPool', 'BIDSModelVersion': '1.0.0', 'Input': {'task': ['tm1', 'tm2'], 'subject': ['000', '001', '002', '003']}, 'Nodes': [{'Level': 'Run', 'Name': 'runLevel', 'GroupBy': ['subject', 'task', 'run'], 'Transformations': {'Transformer': 'pybids-transforms-v1', 'Instructions': [{'Name': 'Factor', 'Input': ['trial_type']}]}, 'Model': {'Type': 'glm', 'X': ['trial_type.choice', 'trial_type.wait', 'trial_type.feedback', 'trial_type.fixation', 'framewise_displacement', 'trans_x', 'trans_y', 'trans_z', 'rot_x', 'rot_y', 'rot_z', 'a_comp_cor_00', 'a_comp_cor_01', 'a_comp_cor_02', 'a_comp_cor_03', 'a_comp_cor_04', 'a_comp_cor_05']}, 'Contrasts': [{'Name': 'visual_gt_fixation', 'ConditionList': ['trial_type.choice', 'trial_type.wait', 'trial_type.feedback', 'trial_type.fixation'], 'Weights': [0.3333333333333333, 0.3333333333333333, 0.3333333333333333, -1.0], 'Test': 't'}]}, {'Level': 'Subject', 'Name': 'subjectLevel', 'GroupBy': ['subject', 'contrast'], 'Transformations': {'Transformer': 'pybids-transforms-v1', 'Instructions': [{'Name': 'FixedEffects', 'Input': ['contrast']}]}, 'Model': {'Type': 'meta', 'X': [1]}, 'DummyContrasts': {'Test': 't'}}]}
+selectors = {'desc': 'preproc', 'space': 'MNI152NLin2009cAsym', 'subject': ['000', '001', '002', '003']}
+
+Traceback (most recent call last):
+  File "/opt/miniconda-latest/envs/neuro/lib/python3.9/site-packages/nipype/pipeline/plugins/multiproc.py", line 67, in run_node
+    result["result"] = node.run(updatehash=updatehash)
+  File "/opt/miniconda-latest/envs/neuro/lib/python3.9/site-packages/nipype/pipeline/engine/nodes.py", line 527, in run
+    result = self._run_interface(execute=True)
+  File "/opt/miniconda-latest/envs/neuro/lib/python3.9/site-packages/nipype/pipeline/engine/nodes.py", line 645, in _run_interface
+    return self._run_command(execute)
+  File "/opt/miniconda-latest/envs/neuro/lib/python3.9/site-packages/nipype/pipeline/engine/nodes.py", line 771, in _run_command
+    raise NodeExecutionError(msg)
+nipype.pipeline.engine.nodes.NodeExecutionError: Exception raised while executing Node loader.
+
+Traceback:
+	Traceback (most recent call last):
+	  File "/opt/miniconda-latest/envs/neuro/lib/python3.9/site-packages/nipype/interfaces/base/core.py", line 398, in run
+	    runtime = self._run_interface(runtime)
+	  File "/opt/miniconda-latest/envs/neuro/lib/python3.9/site-packages/fitlins/interfaces/bids.py", line 246, in _run_interface
+	    graph.load_collections(**selectors)
+	  File "/opt/miniconda-latest/envs/neuro/lib/python3.9/site-packages/bids/modeling/statsmodels.py", line 198, in load_collections
+	    collections = self.layout.get_collections(node.level, drop_na=drop_na,
+	  File "/opt/miniconda-latest/envs/neuro/lib/python3.9/site-packages/bids/layout/layout.py", line 860, in get_collections
+	    index = load_variables(self, types=types, levels=level,
+	  File "/opt/miniconda-latest/envs/neuro/lib/python3.9/site-packages/bids/variables/io.py", line 97, in load_variables
+	    dataset = _load_tsv_variables(layout, t, dataset, scope=scope,
+	  File "/opt/miniconda-latest/envs/neuro/lib/python3.9/site-packages/bids/variables/io.py", line 500, in _load_tsv_variables
+	    node = dataset.get_or_create_node(level, f.entities)
+	  File "/opt/miniconda-latest/envs/neuro/lib/python3.9/site-packages/bids/variables/entities.py", line 284, in get_or_create_node
+	    result = self.get_nodes(level, entities)
+	  File "/opt/miniconda-latest/envs/neuro/lib/python3.9/site-packages/bids/variables/entities.py", line 216, in get_nodes
+	    rows = self.index.query(query)
+	  File "/work/scripts/trace_fitlins_entrypoint.py", line 21, in _dbg_query
+	    return _orig_query(self, expr, *args, **kwargs)
+	  File "/opt/miniconda-latest/envs/neuro/lib/python3.9/site-packages/pandas/core/frame.py", line 4060, in query
+	    res = self.eval(expr, **kwargs)
+	  File "/opt/miniconda-latest/envs/neuro/lib/python3.9/site-packages/pandas/core/frame.py", line 4191, in eval
+	    return _eval(expr, inplace=inplace, **kwargs)
+	  File "/opt/miniconda-latest/envs/neuro/lib/python3.9/site-packages/pandas/core/computation/eval.py", line 348, in eval
+	    parsed_expr = Expr(expr, engine=engine, parser=parser, env=env)
+	  File "/opt/miniconda-latest/envs/neuro/lib/python3.9/site-packages/pandas/core/computation/expr.py", line 806, in __init__
+	    self.terms = self.parse()
+	  File "/opt/miniconda-latest/envs/neuro/lib/python3.9/site-packages/pandas/core/computation/expr.py", line 825, in parse
+	    return self._visitor.visit(self.expr)
+	  File "/opt/miniconda-latest/envs/neuro/lib/python3.9/site-packages/pandas/core/computation/expr.py", line 411, in visit
+	    return visitor(node, **kwargs)
+	  File "/opt/miniconda-latest/envs/neuro/lib/python3.9/site-packages/pandas/core/computation/expr.py", line 417, in visit_Module
+	    return self.visit(expr, **kwargs)
+	  File "/opt/miniconda-latest/envs/neuro/lib/python3.9/site-packages/pandas/core/computation/expr.py", line 411, in visit
+	    return visitor(node, **kwargs)
+	  File "/opt/miniconda-latest/envs/neuro/lib/python3.9/site-packages/pandas/core/computation/expr.py", line 420, in visit_Expr
+	    return self.visit(node.value, **kwargs)
+	  File "/opt/miniconda-latest/envs/neuro/lib/python3.9/site-packages/pandas/core/computation/expr.py", line 411, in visit
+	    return visitor(node, **kwargs)
+	  File "/opt/miniconda-latest/envs/neuro/lib/python3.9/site-packages/pandas/core/computation/expr.py", line 745, in visit_BoolOp
+	    return reduce(visitor, operands)
+	  File "/opt/miniconda-latest/envs/neuro/lib/python3.9/site-packages/pandas/core/computation/expr.py", line 738, in visitor
+	    lhs = self._try_visit_binop(x)
+	  File "/opt/miniconda-latest/envs/neuro/lib/python3.9/site-packages/pandas/core/computation/expr.py", line 734, in _try_visit_binop
+	    return self.visit(bop)
+	  File "/opt/miniconda-latest/envs/neuro/lib/python3.9/site-packages/pandas/core/computation/expr.py", line 411, in visit
+	    return visitor(node, **kwargs)
+	  File "/opt/miniconda-latest/envs/neuro/lib/python3.9/site-packages/pandas/core/computation/expr.py", line 718, in visit_Compare
+	    return self.visit(binop)
+	  File "/opt/miniconda-latest/envs/neuro/lib/python3.9/site-packages/pandas/core/computation/expr.py", line 411, in visit
+	    return visitor(node, **kwargs)
+	  File "/opt/miniconda-latest/envs/neuro/lib/python3.9/site-packages/pandas/core/computation/expr.py", line 532, in visit_BinOp
+	    op, op_class, left, right = self._maybe_transform_eq_ne(node)
+	  File "/opt/miniconda-latest/envs/neuro/lib/python3.9/site-packages/pandas/core/computation/expr.py", line 454, in _maybe_transform_eq_ne
+	    right = self.visit(node.right, side="right")
+	  File "/opt/miniconda-latest/envs/neuro/lib/python3.9/site-packages/pandas/core/computation/expr.py", line 411, in visit
+	    return visitor(node, **kwargs)
+	  File "/opt/miniconda-latest/envs/neuro/lib/python3.9/site-packages/pandas/core/computation/expr.py", line 263, in f
+	    raise NotImplementedError(f"'{node_name}' nodes are not implemented")
+	NotImplementedError: 'Dict' nodes are not implemented
+

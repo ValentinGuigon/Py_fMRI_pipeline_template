@@ -1,0 +1,72 @@
+{
+  "Name": "tmthFixationCompCor",
+  "BIDSModelVersion": "1.0.0",
+  "Description": "TM/TH fixation-only sanity GLM with motion + FD + aCompCor (+ cosine drifts if present).",
+  "Input": {
+    "task": [
+      "tm1",
+      "tm2",
+      "th1",
+      "th2"
+    ],
+    "subject": [
+      "000",
+      "001",
+      "002",
+      "003"
+    ]
+  },
+  "Nodes": [
+    {
+      "Level": "Run",
+      "Name": "runLevel",
+      "GroupBy": [
+        "subject",
+        "task",
+        "run"
+      ],
+      "Transformations": [
+        {
+          "Name": "Factor",
+          "Input": [
+            "trial_type"
+          ]
+        }
+      ],
+      "Model": {
+        "X": [
+          "trial_type.fixation",
+          "framewise_displacement",
+          "trans_x",
+          "trans_y",
+          "trans_z",
+          "rot_x",
+          "rot_y",
+          "rot_z",
+          "a_comp_cor_00",
+          "a_comp_cor_01",
+          "a_comp_cor_02",
+          "a_comp_cor_03",
+          "a_comp_cor_04",
+          "a_comp_cor_05",
+          "cosine00",
+          "cosine01",
+          "cosine02",
+          "cosine03"
+        ]
+      },
+      "Contrasts": [
+        {
+          "Name": "fixation_gt_baseline",
+          "ConditionList": [
+            "trial_type.fixation"
+          ],
+          "Weights": [
+            1.0
+          ],
+          "Test": "t"
+        }
+      ]
+    }
+  ]
+}
