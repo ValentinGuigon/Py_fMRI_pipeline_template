@@ -35,27 +35,51 @@ txt = p.read_text()
 helper_name = "_sanitize_pandas_query"
 if helper_name not in txt:
     helper = r'''
-def _sanitize_pandas_query(expr):
-    """Remove dict-literal comparisons from pandas query strings.
-
-    Some PyBIDS versions can accidentally embed dict objects (e.g., column metadata)
-    into the query expression, which pandas cannot parse ('Dict' nodes).
-    We conservatively drop any conjunct of the form: <name> == { ... }.
-    """
+def _sanitize_pandas_query(df, expr):
+    """Split a query expression into pandas-safe and dict-literal parts,
+    evaluate both, and return the combined boolean mask."""
     import re
-    if not isinstance(expr, str):
-        return expr
+    import ast
 
-    # Remove "and <name> == { ... }"
-    expr = re.sub(r"\s+and\s+\w+\s*==\s*\{.*?\}", "", expr)
+    if not isinstance(expr, str) or not expr.strip():
+        return df
 
-    # Remove leading "<name> == { ... } and"
-    expr = re.sub(r"^\s*\w+\s*==\s*\{.*?\}\s+and\s+", "", expr)
+    # Pattern to capture: <col> == {<dict_body>}
+    dict_pat = re.compile(r'(\w+)\s*==\s*(\{[^}]*\})')
 
-    # If the whole expr was just "<name> == { ... }", drop it
-    expr = re.sub(r"^\s*\w+\s*==\s*\{.*?\}\s*$", "", expr).strip()
+    dict_conditions = []
+    clean_parts = []
 
-    return expr
+    # Split on ' and ' to get individual conjuncts
+    conjuncts = re.split(r'\s+and\s+', expr.strip())
+
+    for conj in conjuncts:
+        m = dict_pat.fullmatch(conj.strip())
+        if m:
+            col_name = m.group(1)
+            try:
+                val = ast.literal_eval(m.group(2))
+                dict_conditions.append((col_name, val))
+            except (ValueError, SyntaxError):
+                # Can't parse it — keep it in the query string,
+                # let pandas raise so you hear about it
+                clean_parts.append(conj)
+        else:
+            clean_parts.append(conj)
+
+    # Evaluate the pandas-safe portion
+    clean_expr = " and ".join(clean_parts)
+    if clean_expr:
+        result = df.query(clean_expr)
+    else:
+        result = df
+
+    # Apply dict conditions via normal Python equality
+    for col_name, val in dict_conditions:
+        if col_name in result.columns:
+            result = result[result[col_name].apply(lambda x: x == val)]
+
+    return result
 '''
     # Insert helper after first blank line (post-import block)
     m = re.search(r"\n\n", txt)
