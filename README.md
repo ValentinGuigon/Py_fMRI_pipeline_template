@@ -1,32 +1,74 @@
-# FitLins pipeline
+# FitLins fMRI Analysis Pipeline
 
-This project requires a **specific, reproducible FitLins stack** due to incompatibilities between vanilla FitLins/PyBIDS and the structure of the SLB dataset.
+GLM-based fMRI analysis pipeline for the SLB dataset, built around FitLins and a patched Apptainer container. The pipeline runs subject-level and group-level analyses from preprocessed fMRIPrep outputs through to thresholded statistical maps and HTML reports.
 
 ---
 
-## Scripts overview
+## Prerequisites
+
+Before running any analysis, three things must exist on disk:
+
+1. A working BIDS directory (`slb_bids_runs/`) — thin clone of the shared BIDS data
+2. The patched Apptainer container (`fitlins-0.11.0_pybids-0.15.6_patched.sif`)
+3. An events directory (`slb_events/`) — only required for models that use non-default events (e.g. motor models)
+
+Setup instructions for each are in the [One-time setup](#one-time-setup) section below.
+
+---
+
+## Directory layout
+
+```
+work/
+  slb_bids_runs/            Working BIDS directory (symlinked NIfTIs, local metadata)
+  slb_events/
+    original/               Reference copies of events TSVs from slb_bids_runs
+    motor/                  Augmented events with button press delta events added
+  fitlins_models/           Model JSON files (*_smdl.json), one per analysis
+  fitlins_configs/          Config files (*. cfg), one per analysis
+  fitlins_derivatives/      FitLins outputs (statmaps, reports)
+  figures/                  Thresholded statistical maps (PNG) and manifests
+  slurm_logs/               SLURM sbatch scripts and job logs
+  scripts/
+    build/                  Data preparation scripts (run once before analysis)
+    run/                    Pipeline execution scripts (main entry points)
+    validate/               Validation scripts
+```
+
+---
+
+## Scripts
+
+**`scripts/build/`** — data preparation, run once before analysis
 
 | Script | Purpose |
 |---|---|
-| `rebuild_bids_runs_thinclone.py` | Create a thin-clone working BIDS directory (symlink NIfTIs, copy metadata) |
-| `init_events_dir.sh` | Initialize the `slb_events/` directory (copy originals, create augmented subdirs) |
-| `add_button_press_events.py` | Augment events TSVs with delta button press events for motor models |
-| `fitlins_patched.def` + `environment.yml` | Build the patched Apptainer container |
-| `parse_model.py` | Parse model JSON to auto-derive subjects, contrasts, nodes, stat type |
-| `run_fitlins_models.sh` | Low-level FitLins runner (called by `run_pipeline.sh`) |
-| `run_pipeline.sh` | **Main entry point.** Runs all steps: FitLins → fix report → plot |
-| `fix_fitlins_reports.py` | Post-hoc HTML patcher for FitLins reports (paths + missing contrasts) |
-| `plot_fmri_statmaps.py` | Nilearn-based stat map plotter, writes glass brain + slice PNGs + optional 3D HTML + manifest TSV |
+| `rebuild_bids_runs_thinclone.py` | Create the working BIDS directory (symlink NIfTIs, copy metadata locally) |
+| `init_events_dir.sh` | Initialize the `slb_events/` directory structure |
+| `add_button_press_events.py` | Generate motor events TSVs with button press delta events |
 
-> **Do not call `fitlins` or `plot_fmri_statmaps.py` directly.** Use `run_pipeline.sh`.
+**`scripts/run/`** — pipeline execution
+
+| Script | Purpose |
+|---|---|
+| `run_pipeline.sh` | **Main entry point.** Orchestrates FitLins → report fix → plotting |
+| `submit_pipeline.sh` | SLURM wrapper for `run_pipeline.sh` |
+| `run_fitlins_models.sh` | Low-level FitLins runner inside the container (called by `run_pipeline.sh`) |
+| `parse_model.py` | Parse a model JSON to extract subjects, contrasts, nodes, stat type |
+| `fix_fitlins_reports.py` | Post-hoc patcher for FitLins HTML reports |
+| `plot_fmri_statmaps.py` | Nilearn-based stat map plotter (glass brain, slices, 3D HTML, cluster tables) |
+
+**`scripts/validate/`** — validation
+
+`fitlins_patched.def` (container definition file) lives in `containers/fitlins_patched/` alongside `environment.yml`.
 
 ---
 
-## Required components
+## One-time setup
 
-### 1. `rebuild_bids_runs_thinclone.py`
+### 1. Build the working BIDS directory
 
-Creates a clean working BIDS directory by symlinking NIfTI files (heavy) and copying all metadata (JSON/TSV) locally. This avoids mixed provenance between shared read-only data and locally edited metadata.
+The shared BIDS data is read-only. This script creates a local working copy by symlinking NIfTI files and copying all metadata (JSON, TSV) so they can be edited without affecting the shared source.
 
 ```bash
 python3 rebuild_bids_runs_thinclone.py \
@@ -34,269 +76,255 @@ python3 rebuild_bids_runs_thinclone.py \
   --dst /data/sld/homes/vguigon/work/slb_bids_runs
 ```
 
-The destination must not already exist. Remove it first if you need to rebuild.
+The destination must not already exist. If you need to rebuild it, remove it first.
 
----
-
-### 2. Events directory (`slb_events/`)
-
-Stores events TSVs separately from the BIDS thin-clone to allow augmented variants without modifying the original files.
-
-```
-slb_events/
-  original/    ← verbatim copies from slb_bids_runs (reference, never modified)
-  motor/       ← augmented with button_press events (generated by add_button_press_events.py)
-```
-
-**Initialize once:**
-```bash
-bash init_events_dir.sh \
-  --bids-dir   /data/sld/homes/vguigon/work/slb_bids_runs \
-  --events-dir /data/sld/homes/vguigon/work/slb_events \
-  --name       motor
-```
-
-**Generate motor events from original:**
-```bash
-python3 add_button_press_events.py \
-  --src-bids-dir   /data/sld/homes/vguigon/work/slb_events/original \
-  --dst-events-dir /data/sld/homes/vguigon/work/slb_events/motor \
-  --tasks tm th
-```
-
-When `EVENTS_DIR` is set in a config, `run_pipeline.sh` diffs the events in that directory against the BIDS thin-clone and copies only changed files before running FitLins. Standard (visual) models leave `EVENTS_DIR` unset.
-
----
-
-### 3. `containers/fitlins_patched/`
-
-Contains `fitlins_patched.def` and `environment.yml`. Build the container once:
-
-```bash
-apptainer build fitlins_patched.sif fitlins_patched.def
-mv -n fitlins_patched.sif fitlins-0.11.0_pybids-0.15.6_patched.sif
-
-# Optional checksum
-sha256sum fitlins-0.11.0_pybids-0.15.6_patched.sif > fitlins-0.11.0_pybids-0.15.6_patched.sif.sha256
-```
-
-**Why a patched container?** Vanilla FitLins fails on this dataset with
-`NotImplementedError: 'Dict' nodes are not implemented`.
-The container applies a defensive patch that sanitizes dict-valued PyBIDS entities
-before they reach `pandas.DataFrame.query`.
-
-Pinned versions: `fitlins==0.11.0`, `pybids==0.15.6`, `pandas==1.5.*`.
-
----
-
-### 4. Model JSON files (`fitlins_models/`)
-
-BIDS Stats Models compliant. Naming convention: `<stem>_smdl.json`.
-
-Current models:
-
-| File | Tasks | Contrast(s) | Nodes |
-|---|---|---|---|
-| `tmth_visual_vs_fixation_compcor_smdl.json` | tm, th | `visualGtFixation` | runLevel → subjectLevel → datasetLevel |
-| `tmth_motor_bilateral_smdl.json` | tm, th | `motorGtFixation` | runLevel → subjectLevel → datasetLevel |
-| `tmth_motor_lateralization_smdl.json` | tm, th | `leftGtRight`, `rightGtLeft` | runLevel → subjectLevel → datasetLevel |
-
-Motor models require `EVENTS_DIR` to point to `slb_events/motor/`.
-
----
-
-### 5. `parse_model.py`
-
-Helper used internally by `run_pipeline.sh` to auto-derive information from the model JSON. You do not need to call it directly, but it can be useful for inspection:
-
-```bash
-python3 parse_model.py fitlins_models/tmth_visual_vs_fixation_compcor_smdl.json --field subjects
-python3 parse_model.py fitlins_models/tmth_visual_vs_fixation_compcor_smdl.json --field contrasts
-python3 parse_model.py fitlins_models/tmth_visual_vs_fixation_compcor_smdl.json --field group_nodes
-python3 parse_model.py fitlins_models/tmth_visual_vs_fixation_compcor_smdl.json --field stat
-```
-
-Available fields: `subjects`, `tasks`, `stat`, `contrasts`, `run_node`, `group_nodes`.
-
----
-
-## Running the pipeline
-
-### Recommended workflow: config files
-
-Create one config file per analysis in `configs/`. CLI flags always override config values.
-
-**Example config — visual model** (`configs/tmth_visual_vs_fixation_compcor.cfg`):
-```bash
-MODEL="tmth_visual_vs_fixation_compcor"
-BIDS_DIR="/data/sld/homes/vguigon/work/slb_bids_runs"
-# EVENTS_DIR unset — use events already in BIDS_DIR
-DERIV_SUBDIR="fmriprep_runs"
-DERIV_LABEL="fmriprep"
-SMOOTH="4:run:iso"
-NCPUS="8"
-MEM_GB="16"
-THR_MODE="p-unc"
-P_UNC="0.01"
-TWO_SIDED="1"
-PLOT_ABS="1"
-# SUBJECTS, CONTRASTS, STATS, NODES_RUN, GROUP_NODES, PLOT_GLOB
-# are all auto-derived from the model JSON if left unset
-```
-
-**Example config — motor model** (`configs/tmth_motor_bilateral.cfg`):
-```bash
-MODEL="tmth_motor_bilateral"
-BIDS_DIR="/data/sld/homes/vguigon/work/slb_bids_runs"
-EVENTS_DIR="/data/sld/homes/vguigon/work/slb_events/motor"
-DERIV_SUBDIR="fmriprep_runs"
-DERIV_LABEL="fmriprep"
-SMOOTH="4:run:iso"
-NCPUS="8"
-MEM_GB="16"
-THR_MODE="p-unc"
-P_UNC="0.01"
-TWO_SIDED="1"
-PLOT_ABS="1"
-```
-
-Then run:
-```bash
-# Full pipeline
-run_pipeline.sh --config configs/tmth_visual_vs_fixation_compcor.cfg --steps all
-
-# Plot only (FitLins already ran)
-run_pipeline.sh --config configs/tmth_visual_vs_fixation_compcor.cfg --steps plot-run,plot-group
-
-# Override threshold from CLI
-run_pipeline.sh --config configs/tmth_visual_vs_fixation_compcor.cfg --thr-mode fixed --thr-fixed 4.0
-```
-
-### Auto-derivation from model JSON
-
-When the following are not set in config or CLI, `run_pipeline.sh` derives them automatically from the model JSON via `parse_model.py`:
-
-| Variable | Derived from |
-|---|---|
-| `SUBJECTS` | `Input.subject` |
-| `CONTRASTS` | All `Contrasts[].Name` across nodes |
-| `STATS` | `Test` field of first explicit contrast (`t` or `z`) |
-| `NODES_RUN` | Node with `"Level": "Run"` |
-| `GROUP_NODES` | All nodes with `"Level" != "Run"` |
-| `PLOT_GLOB` | `**/*stat-<STATS>*_statmap.nii*` |
-
-For `plot-group`, the pipeline **loops over every group node automatically** — no need to specify them individually or run the script multiple times.
-
----
-
-### Available steps
-
-Pass as comma-separated values to `--steps`. Default is `all`.
-
-| Step | What it does |
-|---|---|
-| `fitlins` | Run FitLins GLM inside the patched container |
-| `fixreport` | Patch the HTML report (fix broken paths, inject missing contrast figures) |
-| `plot-run` | Plot run-level stat maps for all subjects |
-| `plot-group` | Plot all group-level nodes (loops automatically) |
-| `all` | All of the above in order |
-
-> Do not include spaces between step names: `--steps plot-run,plot-group` ✓
-
-Add `--force` to overwrite existing outputs. Without it, `fitlins` will refuse to run if the output directory already exists.
-
----
-
-### Common invocations
-
-#### Run everything
-```bash
-run_pipeline.sh --config configs/tmth_visual_vs_fixation_compcor.cfg --steps all
-```
-
-#### Plot only (FitLins already ran)
-```bash
-run_pipeline.sh --config configs/tmth_visual_vs_fixation_compcor.cfg --steps plot-run,plot-group
-```
-
-#### With cluster extent filtering (voxel p<0.01, k≥10)
-```bash
-run_pipeline.sh --config configs/tmth_visual_vs_fixation_compcor.cfg \
-  --steps plot-run,plot-group --cluster-extent 10
-```
-
-#### With interactive 3D viewer
-```bash
-run_pipeline.sh --config configs/tmth_visual_vs_fixation_compcor.cfg \
-  --steps plot-run,plot-group --view3d
-```
-
-#### Fixed threshold
-```bash
-run_pipeline.sh --config configs/tmth_visual_vs_fixation_compcor.cfg \
-  --steps plot-run,plot-group --thr-mode fixed --thr-fixed 3.5
-```
-
-#### No threshold
-```bash
-run_pipeline.sh --config configs/tmth_visual_vs_fixation_compcor.cfg \
-  --steps plot-run,plot-group --thr-mode none
-```
-
----
-
-### Output structure
-
-```
-fitlins_derivatives/
-  <model>_s<kernel>/               # FitLins outputs
-    node-runLevel/
-    node-subjectLevel/
-    node-datasetLevel/
-    reports/
-
-figures/
-  <model>_s<kernel>/               # One directory per model
-    runLevel_p-unc_p0.01_2s/       # Run-level plots
-    subjectLevel_p-unc_p0.01_2s/   # Subject-level plots
-    datasetLevel_p-unc_p0.01_2s/   # Dataset-level plots
-```
-
-Each figure directory contains:
-- `<tag>__glass.png` — glass brain projection (lyrz views)
-- `<tag>__slices.png` — orthogonal slice view
-- `<tag>__3d.html` — interactive 3D viewer (only with `--view3d` / `VIEW3D="1"`)
-- `manifest.tsv` — records every map, threshold mode, threshold value, cluster extent, and output paths
-
-**Viewing `__3d.html` on the HPC:** open the file directly in VSCode's Explorer panel (Remote SSH) and use the **Live Server** extension — right-click the file → "Open with Live Server". No tunnel needed.
-
----
-
-## Thresholding reference
-
-`--thr-mode` controls how the display threshold is computed:
-
-| Mode | Behaviour |
-|---|---|
-| `p-unc` | Convert uncorrected p-value to t/z statistic. Requires df (auto-inferred from design matrix if not passed). |
-| `fixed` | Use a fixed threshold value directly (e.g. `--thr-fixed 3.1`). |
-| `none` | No threshold — display all voxels. |
-
-`--two-sided` (default on) splits alpha across both tails, resulting in a stricter threshold. Use this in almost all cases. The threshold value affects what survives; nilearn still displays both positive and negative clusters regardless.
-
-### Cluster extent filtering
-
-`--cluster-extent K` (or `CLUSTER_EXTENT="K"` in config) removes clusters smaller than K voxels after the voxel-level threshold is applied, using `nilearn.glm.threshold_stats_img`. This is **cluster-extent filtering**, not cluster-FWE correction — report as "voxel-level p<X uncorrected, k≥K".
-
----
-
-## Rebuilding the container
-
-Only needed if `environment.yml` or `fitlins_patched.def` change:
+### 2. Build the patched Apptainer container
 
 ```bash
 cd containers/fitlins_patched/
 apptainer build fitlins_patched.sif fitlins_patched.def
 mv -n fitlins_patched.sif fitlins-0.11.0_pybids-0.15.6_patched.sif
+
+# Optional checksum for reproducibility records
 sha256sum fitlins-0.11.0_pybids-0.15.6_patched.sif > fitlins-0.11.0_pybids-0.15.6_patched.sif.sha256
 ```
+
+The container is required because vanilla FitLins fails on this dataset with a `NotImplementedError` on dict-valued PyBIDS entities. The patched container applies a fix at the source level and pins `fitlins==0.11.0`, `pybids==0.15.6`, `pandas==1.5.*`, and `nilearn==0.9.2`.
+
+Only rebuild the container if `fitlins_patched.def` changes.
+
+### 3. Initialize the events directory (motor models only)
+
+Standard visual models use the events TSVs already in `slb_bids_runs` and do not need this step. Motor models require augmented events TSVs with button press delta events, which are kept in a separate directory to avoid modifying the BIDS source.
+
+```bash
+# Create directory structure and copy reference events
+bash init_events_dir.sh \
+  --bids-dir  /data/sld/homes/vguigon/work/slb_bids_runs \
+  --events-dir /data/sld/homes/vguigon/work/slb_events \
+  --name motor
+
+# Generate motor events (dry run first to verify)
+python3 add_button_press_events.py \
+  --src-bids-dir  /data/sld/homes/vguigon/work/slb_events/original \
+  --dst-events-dir /data/sld/homes/vguigon/work/slb_events/motor \
+  --tasks tm th --dry-run
+
+# Run without --dry-run when satisfied
+python3 add_button_press_events.py \
+  --src-bids-dir  /data/sld/homes/vguigon/work/slb_events/original \
+  --dst-events-dir /data/sld/homes/vguigon/work/slb_events/motor \
+  --tasks tm th
+```
+
+`slb_events/original/` is a verbatim reference copy, never modified. `slb_events/motor/` contains the augmented TSVs. If the source events change (e.g. after re-preprocessing), delete both subdirectories and re-run from scratch.
+
+---
+
+## Running an analysis
+
+### Step 1: Write a model JSON
+
+Place it in `fitlins_models/` with the naming convention `<stem>_smdl.json`. The pipeline auto-derives subjects, contrasts, node names, and stat type from the model JSON at run time — you do not need to specify these in the config or on the command line.
+
+### Step 2: Write a config file
+
+Place it in `fitlins_configs/`. A config file is a sourced bash file that sets variables. CLI flags always override config values.
+
+```bash
+# -- Model -----------------------------------------------------------------
+MODEL="my_model_stem"
+# MODEL_JSON left unset -> resolves to ${MODELS_DIR}/${MODEL}_smdl.json
+
+# -- Data paths ------------------------------------------------------------
+BIDS_DIR="/data/sld/homes/vguigon/work/slb_bids_runs"
+# EVENTS_DIR: set this for motor models; leave unset for visual/standard models
+# EVENTS_DIR="/data/sld/homes/vguigon/work/slb_events/motor"
+DERIV_SUBDIR="fmriprep_runs"
+DERIV_LABEL="fmriprep"
+
+# -- FitLins ---------------------------------------------------------------
+SMOOTH="4:run:iso"    # kernel in mm : level : type
+NCPUS="8"
+MEM_GB="16"
+# SUBJECTS left unset -> auto-derived from model JSON
+
+# -- Thresholding ----------------------------------------------------------
+# Thresholding is visualization-only. FitLins always writes unthresholded
+# .nii statmaps; thresholding happens in plot_fmri_statmaps.py only.
+THR_MODE="p-unc"      # none | fixed | p-unc | fdr | bonferroni | ari
+P_UNC="0.01"          # used when THR_MODE=p-unc
+ALPHA="0.05"          # used when THR_MODE=fdr | bonferroni | ari
+TWO_SIDED="1"         # 1 = two-sided (default); 0 = one-sided
+CLUSTER_EXTENT="10"   # minimum cluster size in voxels; comment out to disable
+#ARI_THRESHOLDS="2.5 3.0 3.5"   # cluster-forming z-thresholds for ari mode
+#ROI_MASK=""                     # path to NIfTI mask for SVC; empty = whole-brain
+#CLUSTER_TABLE="0"               # 1 = write TSV cluster summary alongside figures
+
+# -- Rendering -------------------------------------------------------------
+DISPLAY_MODE="ortho"  # ortho | x | y | z
+PLOT_ABS="1"          # 1 = plot absolute values (both tails on same scale)
+# --view3d at the command line generates interactive 3D HTML via Nilearn view_img
+
+# -- SLURM -----------------------------------------------------------------
+SLURM_PARTITION="compute"
+SLURM_TIME=""
+SLURM_MAIL_USER="you@umd.edu"
+SLURM_MAIL_TYPE="END,FAIL"
+```
+
+### Step 3: Run
+
+#### Without SLURM (login node)
+
+```bash
+# Full pipeline: FitLins -> fix report -> plot run-level -> plot group-level
+run_pipeline.sh --config fitlins_configs/my_model.cfg --steps all
+
+# Rerun FitLins even if output directory already exists
+run_pipeline.sh --config fitlins_configs/my_model.cfg --steps all --force
+
+# Plot only (FitLins already ran)
+run_pipeline.sh --config fitlins_configs/my_model.cfg --steps plot-run,plot-group
+
+# Plot with interactive 3D HTML viewers
+run_pipeline.sh --config fitlins_configs/my_model.cfg --steps plot-run,plot-group --view3d
+
+# Override threshold at the command line
+run_pipeline.sh --config fitlins_configs/my_model.cfg --thr-mode fixed --thr-fixed 4.0
+```
+
+#### With SLURM
+
+`submit_pipeline.sh` generates a timestamped sbatch script and submits it. All `run_pipeline.sh` flags pass through transparently. SLURM resources (`--cpus-per-task`, `--mem`) are taken from `NCPUS` and `MEM_GB` in your config.
+
+```bash
+# Submit full pipeline
+submit_pipeline.sh --config fitlins_configs/my_model.cfg --steps all
+
+# Inspect the sbatch script without submitting
+submit_pipeline.sh --config fitlins_configs/my_model.cfg --no-submit
+
+# Print sbatch script to stdout only (nothing written or submitted)
+submit_pipeline.sh --config fitlins_configs/my_model.cfg --dry-run
+```
+
+Use SLURM for the `fitlins` step, which is CPU- and memory-intensive. Plotting steps (`plot-run`, `plot-group`) are lightweight and can run directly on the login node to avoid the ~5-minute SLURM overhead.
+
+```bash
+# Submit FitLins only
+submit_pipeline.sh --config fitlins_configs/my_model.cfg --steps fitlins
+
+# Then plot directly once the job finishes
+run_pipeline.sh --config fitlins_configs/my_model.cfg --steps plot-run,plot-group
+```
+
+---
+
+## Pipeline steps
+
+| Step | What it does |
+|---|---|
+| `fitlins` | Runs FitLins GLM inside the patched container |
+| `fixreport` | Patches the HTML report: fixes broken image paths and embeds all figures (design matrices, correlation matrices, contrast maps) as base64 so the report is self-contained |
+| `plot-run` | Plots run-level stat maps for all subjects |
+| `plot-group` | Plots all group-level nodes; loops over multiple nodes automatically |
+| `all` | All of the above in order |
+
+Pass as comma-separated values to `--steps`. Default is `all`.
+
+---
+
+## Auto-derivation from model JSON
+
+When not set in config or CLI, `run_pipeline.sh` derives these values automatically via `parse_model.py`:
+
+| Variable | Source in model JSON |
+|---|---|
+| `SUBJECTS` | `Input.subject` |
+| `CONTRASTS` | All `Contrasts[].Name` across all nodes |
+| `STATS` | `Test` field of the first explicit contrast (`t` or `z`) |
+| `NODES_RUN` | The node with `"Level": "Run"` |
+| `GROUP_NODES` | All nodes with `"Level" != "Run"` |
+| `PLOT_GLOB` | `**/*stat-<STATS>*_statmap.nii*` |
+
+`parse_model.py` can also be called directly for inspection:
+
+```bash
+python3 parse_model.py fitlins_models/my_model_smdl.json --field subjects
+python3 parse_model.py fitlins_models/my_model_smdl.json --field contrasts
+python3 parse_model.py fitlins_models/my_model_smdl.json --field group_nodes
+```
+
+---
+
+## Thresholding
+
+Thresholding is applied by `plot_fmri_statmaps.py` at visualization time and does not modify the `.nii` files on disk.
+
+| `THR_MODE` | Behaviour | Key parameters |
+|---|---|---|
+| `p-unc` | Uncorrected p-value converted to t/z statistic; df auto-inferred from design matrix or set with `--df` | `P_UNC` |
+| `fixed` | Fixed threshold applied directly to the stat map | `THR_FIXED` |
+| `fdr` | Benjamini-Hochberg FDR via Nilearn `threshold_stats_img`; requires z-maps | `ALPHA` |
+| `bonferroni` | Bonferroni FWER via Nilearn `threshold_stats_img`; requires z-maps | `ALPHA` |
+| `ari` | All-Resolution Inference (Rosenblatt et al. 2018); produces proportion-of-true-discoveries image | `ALPHA`, `ARI_THRESHOLDS` |
+| `none` | No threshold; all voxels displayed | — |
+
+`TWO_SIDED=1` (the default) splits alpha across both tails, so a nominal p=0.01 is applied as p=0.005 per tail. This results in a stricter threshold than one-sided at the same nominal level. The figure directory name encodes the sidedness (`_2s` or `_1s`) to distinguish outputs generated under different settings.
+
+`CLUSTER_EXTENT` discards surviving clusters smaller than the specified number of voxels. Set `ROI_MASK` to a NIfTI file to restrict correction to a region of interest (SVC). Set `CLUSTER_TABLE=1` to write a TSV cluster summary alongside the figures.
+
+---
+
+## Fixing reports
+
+FitLins generates an HTML report under `fitlins_derivatives/<model>/reports/`. The report contains design matrices, correlation matrices, and contrast figures, but the image paths it writes are relative to the container's internal filesystem and break when opened outside it. The `fixreport` step in `run_pipeline.sh` calls `fix_fitlins_reports.py` automatically, but you can also run it manually if needed:
+
+```bash
+python3 scripts/run/fix_fitlins_reports.py \
+  /data/sld/homes/vguigon/work/fitlins_derivatives/<model>_s<kernel>/reports/model-*.html
+
+# Verbose mode prints diagnostics for any figures that could not be resolved
+python3 scripts/run/fix_fitlins_reports.py \
+  /data/sld/homes/vguigon/work/fitlins_derivatives/<model>_s<kernel>/reports/model-*.html \
+  --verbose
+```
+
+The script patches the report in place and writes a `.bak` backup alongside it. It does three things:
+
+1. Rewrites broken `src`/`href` paths that reference the container's internal work directory
+2. Embeds all local images (design matrices, correlation matrices, contrast figures) as base64 data URIs, making the report fully self-contained
+3. Injects contrast figures found on disk into sections where FitLins reported them as missing due to `--drop-missing`
+
+After patching, the report can be opened in any browser or via VSCode Live Server without broken images.
+
+---
+
+
+
+```
+fitlins_derivatives/
+  <model>_s<kernel>/           FitLins outputs
+    node-<runNode>/
+    node-<groupNode1>/
+    ...
+    reports/
+      model-*.html             HTML report (patched in place by fixreport step)
+
+figures/
+  <model>_s<kernel>/
+    <runNode>_<thr>_<side>/    Run-level figures
+    <groupNode>_<thr>_<side>/  Group-level figures (one directory per node)
+      <tag>__glass.png
+      <tag>__slices.png
+      <tag>__3d.html           (only when --view3d is passed)
+      <tag>__clusters.tsv      (only when CLUSTER_TABLE=1)
+      manifest.tsv
+```
+
+The figure directory name encodes the threshold mode, value, and sidedness, e.g. `runLevel_p-unc_p0.01_2s` or `datasetLevel_fdr_a0.05_2s`. If `ROI_MASK` is set, `_svc` is appended.
+
+`manifest.tsv` records every stat map processed, the threshold applied, the threshold value, and the paths to all output figures. It is the authoritative record of what was plotted and how.
+
+The 3D HTML viewers (`.html`) can be opened with VSCode Live Server over SSH without a Jupyter tunnel.
