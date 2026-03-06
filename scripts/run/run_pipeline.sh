@@ -11,7 +11,7 @@ DERIV_ROOT="/data/sld/homes/collab/slb/derivatives"
 DERIV_SUBDIR="fmriprep"
 DERIV_LABEL="fmriprep"
 
-SCRIPTS_DIR="${WORK_ROOT}/scripts"
+SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 MODELS_DIR="${WORK_ROOT}/fitlins_models"
 OUT_PARENT="${WORK_ROOT}/fitlins_derivatives"
 FIG_PARENT="${WORK_ROOT}/figures"
@@ -69,9 +69,13 @@ PLOT_OUTDIR_GROUP=""     # if multiple group nodes, node name is appended automa
 # Thresholding
 P_UNC="0.001"
 TWO_SIDED="1"
-THR_MODE="p-unc"    # none | fixed | p-unc
+THR_MODE="p-unc"    # none | fixed | p-unc | fdr | bonferroni | ari
 THR_FIXED="3.1"
+ALPHA="0.05"        # FDR/FWER/ARI control level
+ARI_THRESHOLDS=""   # space-separated z-thresholds for ari (default: "2.5 3.0 3.5")
 DF_OVERRIDE=""
+ROI_MASK=""         # path to NIfTI mask for SVC; empty = whole-brain
+CLUSTER_TABLE="0"   # 1 = write TSV cluster summary alongside figures
 
 # Plot rendering
 DISPLAY_MODE="ortho"
@@ -155,11 +159,15 @@ Optional - plot filters (all auto-derived from model JSON if omitted):
                             (node name appended automatically when multiple group nodes)
 
 Optional - thresholding:
-  --thr-mode <mode>       none | fixed | p-unc. Default: ${THR_MODE}
+  --thr-mode <mode>       none | fixed | p-unc | fdr | bonferroni | ari. Default: ${THR_MODE}
   --thr-fixed <float>     Used when thr-mode=fixed. Default: ${THR_FIXED}
   --p-unc <float>         Used when thr-mode=p-unc. Default: ${P_UNC}
+  --alpha <float>         FDR/FWER/ARI control level. Default: ${ALPHA}
+  --ari-thresholds "<z>"  Space-separated cluster-forming z-thresholds for ari. Default: "2.5 3.0 3.5"
   --df <int>              Override df for p-unc (default: auto-infer from design matrix)
   --one-sided             One-sided threshold (default is two-sided)
+  --roi-mask <path>       NIfTI mask for SVC (restricts correction to mask voxels)
+  --cluster-table         Write TSV cluster summary alongside figures
 
 Optional - rendering:
   --display-mode <mode>   ortho | x | y | z. Default: ${DISPLAY_MODE}
@@ -258,8 +266,12 @@ while [[ $# -gt 0 ]]; do
     --thr-mode)          THR_MODE="${2:-}"; shift 2;;
     --thr-fixed)         THR_FIXED="${2:-}"; shift 2;;
     --p-unc)             P_UNC="${2:-}"; shift 2;;
+    --alpha)             ALPHA="${2:-}"; shift 2;;
+    --ari-thresholds)    ARI_THRESHOLDS="${2:-}"; shift 2;;
     --df)                DF_OVERRIDE="${2:-}"; shift 2;;
     --one-sided)         TWO_SIDED="0"; shift 1;;
+    --roi-mask)          ROI_MASK="${2:-}"; shift 2;;
+    --cluster-table)     CLUSTER_TABLE="1"; shift 1;;
 
     --display-mode)      DISPLAY_MODE="${2:-}"; shift 2;;
     --cut-coords)        CUT_COORDS="${2:-}"; shift 2;;
@@ -355,11 +367,21 @@ TWO_SIDED_FLAG=()
 
 THR_ARGS=()
 case "${THR_MODE}" in
-  none)   THR_ARGS=(--thr-mode none) ;;
-  fixed)  THR_ARGS=(--thr-mode fixed --thr-fixed "${THR_FIXED}") ;;
-  p-unc)  THR_ARGS=(--thr-mode p-unc --p-unc "${P_UNC}") ;;
-  *)      die "Unknown --thr-mode: ${THR_MODE} (allowed: none, fixed, p-unc)" ;;
+  none)        THR_ARGS=(--thr-mode none) ;;
+  fixed)       THR_ARGS=(--thr-mode fixed --thr-fixed "${THR_FIXED}") ;;
+  p-unc)       THR_ARGS=(--thr-mode p-unc --p-unc "${P_UNC}") ;;
+  fdr)         THR_ARGS=(--thr-mode fdr --alpha "${ALPHA}") ;;
+  bonferroni)  THR_ARGS=(--thr-mode bonferroni --alpha "${ALPHA}") ;;
+  ari)         THR_ARGS=(--thr-mode ari --alpha "${ALPHA}")
+               [[ -n "${ARI_THRESHOLDS}" ]] && THR_ARGS+=(--ari-thresholds ${ARI_THRESHOLDS}) ;;
+  *)           die "Unknown --thr-mode: ${THR_MODE} (allowed: none, fixed, p-unc, fdr, bonferroni, ari)" ;;
 esac
+
+ROI_MASK_FLAG=()
+[[ -n "${ROI_MASK}" ]] && ROI_MASK_FLAG=(--roi-mask "${ROI_MASK}")
+
+CLUSTER_TABLE_FLAG=()
+[[ "${CLUSTER_TABLE}" == "1" ]] && CLUSTER_TABLE_FLAG=(--cluster-table)
 
 DF_FLAG=()
 [[ -n "${DF_OVERRIDE}" ]] && DF_FLAG=(--df "${DF_OVERRIDE}")
@@ -423,14 +445,18 @@ STATS:        ${STATS}
 THR_MODE:     ${THR_MODE}
 THR_FIXED:    ${THR_FIXED}
 P_UNC:        ${P_UNC}
+ALPHA:        ${ALPHA}
+ARI_THRESHOLDS: ${ARI_THRESHOLDS:-<default>}
 TWO_SIDED:    ${TWO_SIDED}
 DF_OVERRIDE:  ${DF_OVERRIDE:-<auto>}
+ROI_MASK:     ${ROI_MASK:-<none>}
 
 DISPLAY_MODE: ${DISPLAY_MODE}
 CUT_COORDS:   ${CUT_COORDS:-<none>}
 PLOT_ABS:     ${PLOT_ABS}
 VMAX:         ${VMAX:-<none>}
 CLUSTER_EXTENT: ${CLUSTER_EXTENT:-<off>}
+CLUSTER_TABLE: ${CLUSTER_TABLE}
 VIEW3D:       ${VIEW3D}
 
 STEPS:        ${STEPS}
@@ -531,10 +557,13 @@ if has_step "plot-run"; then
   else
     _RUN_NODE_BARE="${NODES_RUN#node-}"
     OUTFIG_RUN="${FIG_PARENT}/${OUT_SUFFIX}/${_RUN_NODE_BARE}_${THR_MODE}"
-    [[ "${THR_MODE}" == "p-unc" ]]  && OUTFIG_RUN+="_p${P_UNC}"
-    [[ "${THR_MODE}" == "fixed" ]]  && OUTFIG_RUN+="_t${THR_FIXED}"
+    [[ "${THR_MODE}" == "p-unc" ]]                               && OUTFIG_RUN+="_p${P_UNC}"
+    [[ "${THR_MODE}" == "fixed" ]]                               && OUTFIG_RUN+="_t${THR_FIXED}"
+    [[ "${THR_MODE}" == "fdr" || "${THR_MODE}" == "bonferroni" || "${THR_MODE}" == "ari" ]] \
+                                                                 && OUTFIG_RUN+="_a${ALPHA}"
     [[ "${TWO_SIDED}"  == "1" ]]    && OUTFIG_RUN+="_2s" || OUTFIG_RUN+="_1s"
     [[ -n "${DF_OVERRIDE}" ]]       && OUTFIG_RUN+="_df${DF_OVERRIDE}"
+    [[ -n "${ROI_MASK}" ]]          && OUTFIG_RUN+="_svc"
   fi
 
   run_cmd python3 "${PLOT_STATMAPS_PY}" \
@@ -555,6 +584,8 @@ if has_step "plot-run"; then
     "${PLOT_ABS_FLAG[@]}" \
     "${VMAX_FLAG[@]}"\
     "${CLUSTER_EXTENT_FLAG[@]}"\
+    "${ROI_MASK_FLAG[@]}"\
+    "${CLUSTER_TABLE_FLAG[@]}"\
     "${VIEW3D_FLAG[@]}"
 fi
 
@@ -581,10 +612,13 @@ if has_step "plot-group"; then
       fi
     else
       OUTFIG_GROUP="${FIG_PARENT}/${OUT_SUFFIX}/${NODE_BARE}_${THR_MODE}"
-      [[ "${THR_MODE}" == "p-unc" ]] && OUTFIG_GROUP+="_p${P_UNC}"
-      [[ "${THR_MODE}" == "fixed" ]] && OUTFIG_GROUP+="_t${THR_FIXED}"
+      [[ "${THR_MODE}" == "p-unc" ]]                               && OUTFIG_GROUP+="_p${P_UNC}"
+      [[ "${THR_MODE}" == "fixed" ]]                               && OUTFIG_GROUP+="_t${THR_FIXED}"
+      [[ "${THR_MODE}" == "fdr" || "${THR_MODE}" == "bonferroni" || "${THR_MODE}" == "ari" ]] \
+                                                                   && OUTFIG_GROUP+="_a${ALPHA}"
       [[ "${TWO_SIDED}" == "1" ]]    && OUTFIG_GROUP+="_2s" || OUTFIG_GROUP+="_1s"
       [[ -n "${DF_OVERRIDE}" ]]      && OUTFIG_GROUP+="_df${DF_OVERRIDE}"
+      [[ -n "${ROI_MASK}" ]]         && OUTFIG_GROUP+="_svc"
     fi
 
     echo "[plot-group] Node: ${NODE_ARG}  ->  ${OUTFIG_GROUP}"
@@ -606,6 +640,8 @@ if has_step "plot-group"; then
       "${PLOT_ABS_FLAG[@]}" \
       "${VMAX_FLAG[@]}"\
       "${CLUSTER_EXTENT_FLAG[@]}"\
+      "${ROI_MASK_FLAG[@]}"\
+      "${CLUSTER_TABLE_FLAG[@]}"\
       "${VIEW3D_FLAG[@]}"
   done
 fi

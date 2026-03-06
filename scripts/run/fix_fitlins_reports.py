@@ -65,6 +65,8 @@ outside the container context. This script makes reports portable and readable.
 Do not use this as part of modeling. Use it only after FitLins completes.
 """
 
+import base64
+import mimetypes
 from pathlib import Path
 import re
 import sys
@@ -231,6 +233,68 @@ def inject_missing_contrast_blocks(html, report_path, verbose=False):
     return "".join(pieces), n
 
 
+def embed_local_images(html, report_path, verbose=False):
+    """
+    Replace src="<relative-path>" on all <img> tags with base64 data URIs,
+    provided the file exists on disk relative to the reports/ directory.
+
+    This makes the report fully self-contained regardless of which path
+    format FitLins used (design matrices, correlation matrices, etc.).
+    Contrast images already embedded as relative paths by inject_missing_contrast_blocks
+    are also captured here, but data: URIs are left untouched.
+    """
+    reports_dir = report_path.parent.resolve()
+    n = 0
+
+    def repl(m):
+        nonlocal n
+        src = m.group(1)
+
+        # Already a data URI or external link — leave untouched
+        if src.startswith(("data:", "http://", "https://", "#")):
+            return m.group(0)
+
+        # Resolve relative to reports/
+        candidate = (reports_dir / src).resolve()
+        if not candidate.exists():
+            # FitLins sometimes writes paths like ../data/sld/homes/.../node-X/...
+            # which when resolved from reports/ produce a nonsense path.
+            # If the src starts with one or more ../ segments followed by what
+            # looks like an absolute path, strip the leading ../ components and
+            # try the remainder as an absolute path.
+            stripped = src
+            while stripped.startswith("../"):
+                stripped = stripped[3:]
+            if stripped and not stripped.startswith("../"):
+                abs_candidate = Path("/" + stripped)
+                if abs_candidate.exists():
+                    candidate = abs_candidate
+                elif verbose:
+                    sys.stderr.write("embed_local_images: not found (tried relative and absolute): {}\n".format(src))
+                    return m.group(0)
+            if not candidate.exists():
+                if verbose:
+                    sys.stderr.write("embed_local_images: not found: {}\n".format(candidate))
+                return m.group(0)
+
+        mime, _ = mimetypes.guess_type(str(candidate))
+        if mime is None:
+            # Fall back for SVG which mimetypes sometimes misses
+            if candidate.suffix.lower() == ".svg":
+                mime = "image/svg+xml"
+            else:
+                if verbose:
+                    sys.stderr.write("embed_local_images: unknown mime for: {}\n".format(candidate))
+                return m.group(0)
+
+        data = base64.b64encode(candidate.read_bytes()).decode("ascii")
+        n += 1
+        return 'src="data:{};base64,{}"'.format(mime, data)
+
+    html = re.sub(r'src="([^"]+)"', repl, html, flags=re.IGNORECASE)
+    return html, n
+
+
 def main(argv):
     if len(argv) < 2:
         sys.stderr.write("Usage: fix_fitlins_reports.py <report.html> [--verbose]\n")
@@ -250,11 +314,13 @@ def main(argv):
     html = report.read_text(errors="ignore")
     html = rewrite_src_href_paths(html, report)
     html, n_patched = inject_missing_contrast_blocks(html, report, verbose)
+    html, n_embedded = embed_local_images(html, report, verbose)
     report.write_text(html)
 
     print("Patched in place:", report)
     print("Backup:", bak)
     print("Patched missing-contrast blocks:", n_patched)
+    print("Embedded local images as base64:", n_embedded)
     return 0
 
 
