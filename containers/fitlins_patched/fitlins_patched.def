@@ -1,0 +1,109 @@
+Bootstrap: docker
+From: mambaorg/micromamba:1.5.10
+
+%labels
+    Author vguigon
+    Purpose "FitLins 0.11.0 stable stack (pybids 0.15.x, pandas 1.5)"
+
+%environment
+    # Quiet, writable matplotlib config for HPC / SLURM
+    export MPLCONFIGDIR=/tmp/mplconfig
+    export PATH=/opt/conda/envs/fitlins/bin:$PATH
+
+%files
+    environment.yml /environment.yml
+
+%post
+    set -e
+
+    # Minimal system dependencies
+    apt-get update
+    apt-get install -y --no-install-recommends \
+        ca-certificates \
+        git \
+    && rm -rf /var/lib/apt/lists/*
+
+    # Create FitLins environment
+    micromamba create -y -n fitlins -f /environment.yml
+
+    # --- Patch PyBIDS entities.py: sanitize pandas query strings before DataFrame.query() ---
+    /opt/conda/envs/fitlins/bin/python - <<'PY'
+import importlib, pathlib, re
+
+spec = importlib.util.find_spec("bids.variables.entities")
+if spec is None or spec.origin is None:
+    raise SystemExit("bids.variables.entities module not found")
+p = pathlib.Path(spec.origin)
+
+txt = p.read_text()
+
+helper_name = "_sanitize_pandas_query"
+if helper_name not in txt:
+    helper = r'''
+def _sanitize_pandas_query(expr):
+    """Remove dict-literal comparisons from pandas query strings.
+
+    Some PyBIDS versions can accidentally embed dict objects (e.g., column metadata)
+    into the query expression, which pandas cannot parse ('Dict' nodes).
+    We conservatively drop any conjunct of the form: <name> == { ... }.
+    """
+    import re
+    if not isinstance(expr, str):
+        return expr
+    # Remove "and <name> == { ... }"
+    expr = re.sub(r"\s+and\s+\w+\s*==\s*\{.*?\}", "", expr)
+    # Remove leading "<name> == { ... } and"
+    expr = re.sub(r"^\s*\w+\s*==\s*\{.*?\}\s+and\s+", "", expr)
+    # If the whole expr was just "<name> == { ... }", drop it
+    expr = re.sub(r"^\s*\w+\s*==\s*\{.*?\}\s*$", "", expr).strip()
+    return expr
+'''
+    # Insert helper after first blank line (post-import block)
+    m = re.search(r"\n\n", txt)
+    if not m:
+        raise SystemExit("Unexpected entities.py format: no insertion point for helper")
+    txt = txt[:m.end()] + helper + txt[m.end():]
+
+# Find a call like: self.index.query(query_var)
+m = re.search(r"self\.index\.query\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*\)", txt)
+if not m:
+    raise SystemExit("Could not find self.index.query(<var>) in entities.py; patch target not found")
+var = m.group(1)
+
+# Inject '<var> = _sanitize_pandas_query(<var>)' immediately before the query call line
+# Determine indentation of the line containing the call
+line_start = txt.rfind("\n", 0, m.start()) + 1
+line_end = txt.find("\n", m.start())
+call_line = txt[line_start:line_end]
+indent = re.match(r"[ \t]*", call_line).group(0)
+injection = f"{indent}{var} = _sanitize_pandas_query({var})\n"
+
+# Avoid double-injecting
+pre_window_start = max(0, line_start - 300)
+pre_window = txt[pre_window_start:line_start]
+if helper_name in pre_window and f"{var} = {helper_name}({var})" in pre_window:
+    # already patched
+    pass
+else:
+    txt = txt[:line_start] + injection + txt[line_start:]
+
+p.write_text(txt)
+print("Patched:", p)
+print("Injected sanitization for variable:", var)
+PY
+
+    micromamba clean -a -y
+
+    # Sanity checks (fail early if anything is wrong)
+    /opt/conda/envs/fitlins/bin/python -c "import sys; print('python', sys.version)"
+    /opt/conda/envs/fitlins/bin/python -c \
+      "import bids, pandas, fitlins, nipype, nilearn, matplotlib; \
+       print('fitlins', fitlins.__version__); \
+       print('pybids', bids.__version__); \
+       print('pandas', pandas.__version__); \
+       print('nipype', nipype.__version__); \
+       print('nilearn', nilearn.__version__); \
+       print('matplotlib', matplotlib.__version__)"
+
+%runscript
+    exec /opt/conda/envs/fitlins/bin/fitlins "$@"
