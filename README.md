@@ -41,22 +41,22 @@ work/
 
 **`scripts/build/`** — data preparation, run once before analysis
 
-| Script | Purpose |
-|---|---|
-| `rebuild_bids_runs_thinclone.py` | Create the working BIDS directory (symlink NIfTIs, copy metadata locally) |
-| `init_events_dir.sh` | Initialize the `slb_events/` directory structure |
-| `add_button_press_events.py` | Generate motor events TSVs with button press delta events |
+| Script                                                                                                 | Purpose                                                                         |
+| ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------- |
+| `rebuild_bids_runs_thinclone.py`                                                                       | Create the working BIDS directory (symlink NIfTIs, copy metadata locally)       |
+| `init_events_dir.sh`                                                                                   | Initialize the `slb_events/` directory structure                                |
+| `add_tmth_button_press_events.py` / `add_ol_button_press_events.py` / `add_sra_button_press_events.py` | Generate motor events TSVs with button press delta events (one script per task) |
 
 **`scripts/run/`** — pipeline execution
 
-| Script | Purpose |
-|---|---|
-| `run_pipeline.sh` | **Main entry point.** Orchestrates FitLins → report fix → plotting |
-| `submit_pipeline.sh` | SLURM wrapper for `run_pipeline.sh` |
-| `run_fitlins_models.sh` | Low-level FitLins runner inside the container (called by `run_pipeline.sh`) |
-| `parse_model.py` | Parse a model JSON to extract subjects, contrasts, nodes, stat type |
-| `fix_fitlins_reports.py` | Post-hoc patcher for FitLins HTML reports |
-| `plot_fmri_statmaps.py` | Nilearn-based stat map plotter (glass brain, slices, 3D HTML, cluster tables) |
+| Script                   | Purpose                                                                       |
+| ------------------------ | ----------------------------------------------------------------------------- |
+| `run_pipeline.sh`        | **Main entry point.** Orchestrates FitLins → report fix → plotting            |
+| `submit_pipeline.sh`     | SLURM wrapper for `run_pipeline.sh`                                           |
+| `run_fitlins_models.sh`  | Low-level FitLins runner inside the container (called by `run_pipeline.sh`)   |
+| `parse_model.py`         | Parse a model JSON to extract subjects, contrasts, nodes, stat type           |
+| `fix_fitlins_reports.py` | Post-hoc patcher for FitLins HTML reports                                     |
+| `plot_fmri_statmaps.py`  | Nilearn-based stat map plotter (glass brain, slices, 3D HTML, cluster tables) |
 
 **`scripts/validate/`** — validation
 
@@ -93,31 +93,76 @@ The container is required because vanilla FitLins fails on this dataset with a `
 
 Only rebuild the container if `fitlins_patched.def` changes.
 
-### 3. Initialize the events directory (motor models only)
+### 3. Initialize the events directory (non-standard events only)
 
-Standard visual models use the events TSVs already in `slb_bids_runs` and do not need this step. Motor models require augmented events TSVs with button press delta events, which are kept in a separate directory to avoid modifying the BIDS source.
+Standard visual models use the events TSVs already in `slb_bids_runs` and do not need this step. Models that require augmented events (e.g. motor models with button press delta events) use a separate `slb_events/` directory so the BIDS source is never modified.
+
+#### 3a. Initialize the directory structure (once)
+
+Run this once before generating any augmented events. It creates `slb_events/original/` (a verbatim reference copy of all events TSVs) and the named subdirectory that will hold the augmented versions.
 
 ```bash
-# Create directory structure and copy reference events
 bash init_events_dir.sh \
-  --bids-dir  /data/sld/homes/vguigon/work/slb_bids_runs \
+  --bids-dir   /data/sld/homes/vguigon/work/slb_bids_runs \
   --events-dir /data/sld/homes/vguigon/work/slb_events \
   --name motor
+```
 
-# Generate motor events (dry run first to verify)
-python3 add_button_press_events.py \
-  --src-bids-dir  /data/sld/homes/vguigon/work/slb_events/original \
+`slb_events/original/` is never modified after this point. `slb_events/motor/` will hold the augmented TSVs. If the source events change (e.g. after re-preprocessing), delete both subdirectories and re-run from scratch.
+
+#### 3b. Generate augmented events
+
+Each task has its own script that reads from `slb_events/original/` and writes augmented TSVs to `slb_events/motor/`. Always do a dry run first to verify the output before writing files.
+
+**tmth** (`task-tm`, `task-th`) — button press onset derived from `scannerTimer_choice_Start + choice_RTs`:
+
+```bash
+# Run with --dry-run for testing
+python3 add_tmth_button_press_events.py \
+  --src-bids-dir   /data/sld/homes/vguigon/work/slb_events/original \
   --dst-events-dir /data/sld/homes/vguigon/work/slb_events/motor \
   --tasks tm th --dry-run
 
 # Run without --dry-run when satisfied
-python3 add_button_press_events.py \
-  --src-bids-dir  /data/sld/homes/vguigon/work/slb_events/original \
+python3 add_tmth_button_press_events.py \
+  --src-bids-dir   /data/sld/homes/vguigon/work/slb_events/original \
   --dst-events-dir /data/sld/homes/vguigon/work/slb_events/motor \
   --tasks tm th
 ```
 
-`slb_events/original/` is a verbatim reference copy, never modified. `slb_events/motor/` contains the augmented TSVs. If the source events change (e.g. after re-preprocessing), delete both subdirectories and re-run from scratch.
+**OL** (`task-obslearn`) — button press onset derived from `scannerTimer_self_choice_Start + choice_RT`:
+
+```bash
+# Run with --dry-run for testing
+python3 add_ol_button_press_events.py \
+  --src-bids-dir   /data/sld/homes/vguigon/work/slb_events/original \
+  --dst-events-dir /data/sld/homes/vguigon/work/slb_events/motor \
+  --tasks obslearn --dry-run
+
+# Run without --dry-run when satisfied
+python3 add_ol_button_press_events.py \
+  --src-bids-dir   /data/sld/homes/vguigon/work/slb_events/original \
+  --dst-events-dir /data/sld/homes/vguigon/work/slb_events/motor \
+  --tasks obslearn
+```
+
+**SRA** (`task-riskself`) — button press onset derived from `onset of self_choice row + self_RT`:
+
+```bash
+# Run with --dry-run for testing
+python3 add_sra_button_press_events.py \
+  --src-bids-dir   /data/sld/homes/vguigon/work/slb_events/original \
+  --dst-events-dir /data/sld/homes/vguigon/work/slb_events/motor \
+  --tasks riskself --dry-run
+
+# Run without --dry-run when satisfied
+python3 add_sra_button_press_events.py \
+  --src-bids-dir   /data/sld/homes/vguigon/work/slb_events/original \
+  --dst-events-dir /data/sld/homes/vguigon/work/slb_events/motor \
+  --tasks riskself
+```
+
+All three scripts add the same three delta event types per button press (`button_press`, `button_press_left`, `button_press_right`) and can be run independently — you do not need to generate all tasks at once.
 
 ---
 
@@ -223,13 +268,13 @@ run_pipeline.sh --config fitlins_configs/my_model.cfg --steps plot-run,plot-grou
 
 ## Pipeline steps
 
-| Step | What it does |
-|---|---|
-| `fitlins` | Runs FitLins GLM inside the patched container |
-| `fixreport` | Patches the HTML report: fixes broken image paths and embeds all figures (design matrices, correlation matrices, contrast maps) as base64 so the report is self-contained |
-| `plot-run` | Plots run-level stat maps for all subjects |
-| `plot-group` | Plots all group-level nodes; loops over multiple nodes automatically |
-| `all` | All of the above in order |
+| Step         | What it does                                                                                                                                                              |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `fitlins`    | Runs FitLins GLM inside the patched container                                                                                                                             |
+| `fixreport`  | Patches the HTML report: fixes broken image paths and embeds all figures (design matrices, correlation matrices, contrast maps) as base64 so the report is self-contained |
+| `plot-run`   | Plots run-level stat maps for all subjects                                                                                                                                |
+| `plot-group` | Plots all group-level nodes; loops over multiple nodes automatically                                                                                                      |
+| `all`        | All of the above in order                                                                                                                                                 |
 
 Pass as comma-separated values to `--steps`. Default is `all`.
 
@@ -239,14 +284,14 @@ Pass as comma-separated values to `--steps`. Default is `all`.
 
 When not set in config or CLI, `run_pipeline.sh` derives these values automatically via `parse_model.py`:
 
-| Variable | Source in model JSON |
-|---|---|
-| `SUBJECTS` | `Input.subject` |
-| `CONTRASTS` | All `Contrasts[].Name` across all nodes |
-| `STATS` | `Test` field of the first explicit contrast (`t` or `z`) |
-| `NODES_RUN` | The node with `"Level": "Run"` |
-| `GROUP_NODES` | All nodes with `"Level" != "Run"` |
-| `PLOT_GLOB` | `**/*stat-<STATS>*_statmap.nii*` |
+| Variable      | Source in model JSON                                     |
+| ------------- | -------------------------------------------------------- |
+| `SUBJECTS`    | `Input.subject`                                          |
+| `CONTRASTS`   | All `Contrasts[].Name` across all nodes                  |
+| `STATS`       | `Test` field of the first explicit contrast (`t` or `z`) |
+| `NODES_RUN`   | The node with `"Level": "Run"`                           |
+| `GROUP_NODES` | All nodes with `"Level" != "Run"`                        |
+| `PLOT_GLOB`   | `**/*stat-<STATS>*_statmap.nii*`                         |
 
 `parse_model.py` can also be called directly for inspection:
 
@@ -262,14 +307,14 @@ python3 parse_model.py fitlins_models/my_model_smdl.json --field group_nodes
 
 Thresholding is applied by `plot_fmri_statmaps.py` at visualization time and does not modify the `.nii` files on disk.
 
-| `THR_MODE` | Behaviour | Key parameters |
-|---|---|---|
-| `p-unc` | Uncorrected p-value converted to t/z statistic; df auto-inferred from design matrix or set with `--df` | `P_UNC` |
-| `fixed` | Fixed threshold applied directly to the stat map | `THR_FIXED` |
-| `fdr` | Benjamini-Hochberg FDR via Nilearn `threshold_stats_img`; requires z-maps | `ALPHA` |
-| `bonferroni` | Bonferroni FWER via Nilearn `threshold_stats_img`; requires z-maps | `ALPHA` |
-| `ari` | All-Resolution Inference (Rosenblatt et al. 2018); produces proportion-of-true-discoveries image | `ALPHA`, `ARI_THRESHOLDS` |
-| `none` | No threshold; all voxels displayed | — |
+| `THR_MODE`   | Behaviour                                                                                              | Key parameters            |
+| ------------ | ------------------------------------------------------------------------------------------------------ | ------------------------- |
+| `p-unc`      | Uncorrected p-value converted to t/z statistic; df auto-inferred from design matrix or set with `--df` | `P_UNC`                   |
+| `fixed`      | Fixed threshold applied directly to the stat map                                                       | `THR_FIXED`               |
+| `fdr`        | Benjamini-Hochberg FDR via Nilearn `threshold_stats_img`; requires z-maps                              | `ALPHA`                   |
+| `bonferroni` | Bonferroni FWER via Nilearn `threshold_stats_img`; requires z-maps                                     | `ALPHA`                   |
+| `ari`        | All-Resolution Inference (Rosenblatt et al. 2018); produces proportion-of-true-discoveries image       | `ALPHA`, `ARI_THRESHOLDS` |
+| `none`       | No threshold; all voxels displayed                                                                     | —                         |
 
 `TWO_SIDED=1` (the default) splits alpha across both tails, so a nominal p=0.01 is applied as p=0.005 per tail. This results in a stricter threshold than one-sided at the same nominal level. The figure directory name encodes the sidedness (`_2s` or `_1s`) to distinguish outputs generated under different settings.
 
@@ -300,8 +345,6 @@ The script patches the report in place and writes a `.bak` backup alongside it. 
 After patching, the report can be opened in any browser or via VSCode Live Server without broken images.
 
 ---
-
-
 
 ```
 fitlins_derivatives/

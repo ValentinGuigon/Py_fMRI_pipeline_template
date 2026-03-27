@@ -1,0 +1,73 @@
+{
+  "Name": "sraMotorLateralization",
+  "BIDSModelVersion": "1.0.0",
+  "Input": {
+    "task": ["riskself"],
+    "subject": ["000", "001", "002", "003"]
+  },
+  "Nodes": [
+    {
+      "Level": "Run",
+      "Name": "runLevel",
+      "GroupBy": ["subject", "task", "run"],
+      "Transformations": {
+        "Transformer": "pybids-transforms-v1",
+        "Instructions": [
+          { "Name": "Factor", "Input": ["trial_type"] },
+          {
+            "Name": "Convolve",
+            "Input": [
+              "trial_type.button_press",
+              "trial_type.button_press_left",
+              "trial_type.button_press_right",
+              "trial_type.self_choice",
+              "trial_type.self_choice_validation",
+              "trial_type.self_iti"
+            ],
+            "Model": "spm"
+          }
+        ]
+      },
+      "Model": {
+        "Type": "glm",
+        "X": [
+          1,
+          "trial_type.button_press",
+          "trial_type.button_press_left",
+          "trial_type.button_press_right",
+          "trial_type.self_choice",
+          "trial_type.self_choice_validation",
+          "trial_type.self_iti",
+          "framewise_displacement",
+          "trans_x", "trans_y", "trans_z",
+          "rot_x", "rot_y", "rot_z",
+          "w_comp_cor_00", "w_comp_cor_01", "w_comp_cor_02",
+          "w_comp_cor_03", "w_comp_cor_04",
+          "c_comp_cor_00", "c_comp_cor_01", "c_comp_cor_02",
+          "c_comp_cor_03", "c_comp_cor_04"
+        ]
+      },
+      "Contrasts": [
+        {
+          "Name": "RightVsLeft",
+          "ConditionList": ["trial_type.button_press_left", "trial_type.button_press_right"],
+          "Weights": [-1.0, 1.0],
+          "Test": "t"
+        },
+        {
+          "Name": "LeftVsRight",
+          "ConditionList": ["trial_type.button_press_left", "trial_type.button_press_right"],
+          "Weights": [1.0, -1.0],
+          "Test": "t"
+        }
+      ]
+    },
+    {
+      "Level": "Dataset",
+      "Name": "datasetLevel",
+      "GroupBy": ["contrast"],
+      "Model": { "Type": "glm", "X": [1] },
+      "DummyContrasts": { "Test": "t" }
+    }
+  ]
+}

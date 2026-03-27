@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-add_button_press_events.py
+tmth_add_button_press_events.py
 ==========================
 Creates a directory of events TSVs with button press delta events added,
 derived from the choice_RTs and choice_keys columns in the BIDS events files.
