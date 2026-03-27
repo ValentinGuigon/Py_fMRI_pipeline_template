@@ -47,6 +47,7 @@ PIPELINE_SH="${PIPELINE_SH:-${SCRIPT_DIR}/run_pipeline.sh}"
 NCPUS="8"
 MEM_GB="16"
 MODEL=""
+TASK_GROUP=""   # mirrors run_pipeline.sh; used to namespace LOGS_DIR
 STEPS="all"
 DRY_RUN="0"
 
@@ -142,6 +143,9 @@ while [[ $# -gt 0 ]]; do
         --model-stem)
             MODEL="${2:-}"
             _PASSTHROUGH_ARGS+=("$1" "$2"); shift 2;;
+        --task-group)
+            TASK_GROUP="${2:-}"
+            _PASSTHROUGH_ARGS+=("$1" "$2"); shift 2;;
         --ncpus)
             NCPUS="${2:-}"
             _PASSTHROUGH_ARGS+=("$1" "$2"); shift 2;;
@@ -152,6 +156,13 @@ while [[ $# -gt 0 ]]; do
             _PASSTHROUGH_ARGS+=("$1"); shift 1;;
     esac
 done
+
+# ---------------------------------------------------------------------------
+# Apply TASK_GROUP namespacing to LOGS_DIR
+# ---------------------------------------------------------------------------
+if [[ -n "${TASK_GROUP}" ]]; then
+    LOGS_DIR="${LOGS_DIR%/}/${TASK_GROUP}"
+fi
 
 # ---------------------------------------------------------------------------
 # Validate

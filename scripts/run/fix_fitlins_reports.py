@@ -40,7 +40,7 @@ relative to <derivatives_root>/reports/.
 WHAT GETS FIXED
 ---------------
 Handled src/href patterns:
-  A) /work/<deriv_name>/...              -> ../...
+  A) <absolute-deriv-root>/...           -> ../...  (works at any nesting depth)
   B) ../work/<deriv_name>/...            -> ../...
   C) ./work/<deriv_name>/...             -> ../...
   D) /node-runLevel/... or /reports/...  -> ../node-runLevel/...
@@ -82,19 +82,24 @@ def rewrite_src_href_paths(html, report_path):
     Rewrite src/href targets so they resolve from <deriv>/reports/.
 
     Handles:
-      A) container absolute: /work/<deriv_name>/...
+      A) Absolute path matching the actual derivatives root at any depth
+         (covers flat layout fitlins_derivatives/<name>/ and namespaced
+         layout fitlins_derivatives/tmth/<name>/ equally)
          -> ../...
 
-      B) container-relative with work prefix: ../work/<deriv_name>/... or ./work/<deriv_name>/...
+      B) Container-relative with work prefix: ../work/<deriv_name>/... or
+         ./work/<deriv_name>/... (legacy fallback patterns)
          -> ../...
 
-      C) root-absolute within derivatives tree: /node-runLevel/... or /reports/...
+      C) Root-absolute within derivatives tree: /node-runLevel/... or /reports/...
          -> ../node-runLevel/... etc.
 
     Leaves http(s), data:, and # unchanged.
     """
     deriv_root = derivatives_root_from_report(report_path).resolve()
     deriv_name = deriv_root.name
+    # Absolute path of the derivatives root with trailing slash — matches at any depth
+    deriv_abs = str(deriv_root).replace("\\", "/").rstrip("/") + "/"
 
     def normalize(val):
         # leave external / anchors untouched
@@ -108,32 +113,50 @@ def rewrite_src_href_paths(html, report_path):
                 return "../" + tail
             return None
 
-        # B) container-relative with work prefix (old style): ../work/<deriv_name>/...
+        # A) Absolute path of the actual derivatives root (works at any nesting depth).
+        #    Because bind mounts make container paths == host paths, this handles both
+        #    flat layout (.../fitlins_derivatives/<name>/) and namespaced layout
+        #    (.../fitlins_derivatives/tmth/<name>/) without hardcoding.
+        out = strip_to_reports(deriv_abs)
+        if out is not None:
+            return out
+
+        # B) Container-relative with work prefix (legacy fallback): ../work/... or ./work/...
         for pref in ("../work/", "./work/"):
             if val.startswith(pref):
-                # NEW: ../work/fitlins_derivatives/<deriv_name>/...
+                # Namespaced: ../work/fitlins_derivatives/<task_group>/<deriv_name>/...
+                # Find the task_group component (parent of deriv_name) from deriv_abs
+                _task_group_prefix = pref + "fitlins_derivatives/" + deriv_root.parent.name + "/" + deriv_name + "/"
+                out = strip_to_reports(_task_group_prefix)
+                if out is not None:
+                    return out
+                # Flat: ../work/fitlins_derivatives/<deriv_name>/...
                 out = strip_to_reports(pref + "fitlins_derivatives/" + deriv_name + "/")
                 if out is not None:
                     return out
-                # Old: ../work/<deriv_name>/...
+                # Oldest: ../work/<deriv_name>/...
                 out = strip_to_reports(pref + deriv_name + "/")
                 if out is not None:
                     return out
                 return val
 
-        # A) container absolute (old style): /work/<deriv_name>/...
+        # C) Container absolute /work/... (legacy fallback)
         if val.startswith("/work/"):
-            # NEW: /work/fitlins_derivatives/<deriv_name>/...
+            # Namespaced: /work/fitlins_derivatives/<task_group>/<deriv_name>/...
+            out = strip_to_reports("/work/fitlins_derivatives/" + deriv_root.parent.name + "/" + deriv_name + "/")
+            if out is not None:
+                return out
+            # Flat: /work/fitlins_derivatives/<deriv_name>/...
             out = strip_to_reports("/work/fitlins_derivatives/" + deriv_name + "/")
             if out is not None:
                 return out
-            # Old: /work/<deriv_name>/...
+            # Oldest: /work/<deriv_name>/...
             out = strip_to_reports("/work/" + deriv_name + "/")
             if out is not None:
                 return out
             return val
 
-        # C) root-absolute within derivatives tree: /node-runLevel/... -> ../node-runLevel/...
+        # D) Root-absolute within derivatives tree: /node-runLevel/... -> ../node-runLevel/...
         if val.startswith("/"):
             return "../" + val.lstrip("/")
 

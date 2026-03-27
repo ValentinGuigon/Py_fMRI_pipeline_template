@@ -16,6 +16,11 @@ MODELS_DIR="${WORK_ROOT}/fitlins_models"
 OUT_PARENT="${WORK_ROOT}/fitlins_derivatives"
 FIG_PARENT="${WORK_ROOT}/figures"
 
+# Task group (optional): if set, all output dirs are namespaced under a subdir.
+# Set in your config file to group models by task/study (e.g. TASK_GROUP="tmth").
+# Results in: fitlins_derivatives/tmth/, figures/tmth/, fitlins_models/tmth/
+TASK_GROUP=""
+
 # Container + runner
 RUN_FITLINS_SH="${SCRIPTS_DIR}/run_fitlins_models.sh"
 
@@ -131,6 +136,9 @@ Optional - model / paths:
   --models-dir <dir>      Default: ${MODELS_DIR}
   --out-parent <dir>      Default: ${OUT_PARENT}
   --fig-parent <dir>      Default: ${FIG_PARENT}
+  --task-group <name>     Namespace all outputs under a subdir (e.g. "tmth").
+                          Sets fitlins_derivatives/<name>/, figures/<name>/, fitlins_models/<name>/
+                          Typically set in the config file as TASK_GROUP="tmth".
   --run-fitlins <sh>      FitLins wrapper script. Default: ${RUN_FITLINS_SH}
 
 Optional - FitLins:
@@ -239,6 +247,7 @@ while [[ $# -gt 0 ]]; do
     --models-dir)        MODELS_DIR="${2:-}"; shift 2;;
     --out-parent)        OUT_PARENT="${2:-}"; shift 2;;
     --fig-parent)        FIG_PARENT="${2:-}"; shift 2;;
+    --task-group)        TASK_GROUP="${2:-}"; shift 2;;
 
     --deriv-root)        DERIV_ROOT="${2:-}"; shift 2;;
     --deriv-subdir)      DERIV_SUBDIR="${2:-}"; shift 2;;
@@ -286,6 +295,17 @@ while [[ $# -gt 0 ]]; do
     *)                   die "Unknown argument: $1";;
   esac
 done
+
+# ----------------------------------------
+# Apply TASK_GROUP namespacing
+# If TASK_GROUP is set (via config or --task-group), append it to the three
+# output roots so all artifacts land under a group-specific subfolder.
+# ----------------------------------------
+if [[ -n "${TASK_GROUP}" ]]; then
+  OUT_PARENT="${OUT_PARENT%/}/${TASK_GROUP}"
+  FIG_PARENT="${FIG_PARENT%/}/${TASK_GROUP}"
+  MODELS_DIR="${MODELS_DIR%/}/${TASK_GROUP}"
+fi
 
 # ----------------------------------------
 # Validate and resolve MODEL_JSON
@@ -414,6 +434,7 @@ cat <<EOF
 
 == Pipeline config ==
 MODEL:        ${MODEL}
+TASK_GROUP:   ${TASK_GROUP:-<none>}
 MODEL_JSON:   ${MODEL_JSON}
 SUBJECTS:     ${SUBJECTS}
 BIDS_DIR:     ${BIDS_DIR}
@@ -651,3 +672,4 @@ echo
 echo "== DONE =="
 echo "Outputs: ${OUT_DIR}"
 echo "Figures: ${FIG_PARENT}/${OUT_SUFFIX}/"
+echo "Group:   ${TASK_GROUP:-<none>}"

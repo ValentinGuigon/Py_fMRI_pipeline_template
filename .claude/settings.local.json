@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git mv:*)",
+      "Bash(mkdir -p fitlins_configs/tmth)",
+      "Bash(mv fitlins_configs/tmth_*.cfg fitlins_configs/tmth/)",
+      "Bash(mkdir -p fitlins_models/tmth)",
+      "Bash(mv fitlins_models/tmth_*.json fitlins_models/tmth/)"
+    ]
+  }
+}
