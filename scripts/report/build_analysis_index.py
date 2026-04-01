@@ -156,6 +156,13 @@ def collect_entries(work_root: Path, task_group: str) -> List[Dict[str, object]]
         kernel = smooth.split(":", 1)[0] if smooth else ""
         out_suffix = f"{stem}_s{kernel}" if kernel else stem
 
+        thr_mode = _parse_cfg_value(cfg_text, "THR_MODE")
+        p_unc = _parse_cfg_value(cfg_text, "P_UNC")
+        alpha = _parse_cfg_value(cfg_text, "ALPHA")
+        two_sided = _parse_cfg_value(cfg_text, "TWO_SIDED")
+        cluster_extent = _parse_cfg_value(cfg_text, "CLUSTER_EXTENT")
+        events_dir = _parse_cfg_value(cfg_text, "EVENTS_DIR")
+
         deriv_candidates = sorted(deriv_dir.glob(f"{stem}_s*/reports/model-*.html"))
         report_candidates = sorted(reports_dir.glob(f"{stem}*.pdf"))
         manifest_candidates = sorted(figures_dir.glob(f"{out_suffix}/*/manifest.tsv"))
@@ -169,6 +176,13 @@ def collect_entries(work_root: Path, task_group: str) -> List[Dict[str, object]]
                 "model_json_path": _relative_to_work_root(model_json, work_root),
                 "glm": model_spec["glm"],
                 "contrasts_spec": model_spec["contrasts"],
+                "thr_mode": thr_mode,
+                "p_unc": p_unc,
+                "alpha": alpha,
+                "two_sided": two_sided,
+                "cluster_extent_voxels": cluster_extent,
+                "events_dir": events_dir,
+                "events_type": "motor" if events_dir else "standard",
                 "fitlins_html_reports": [
                     _relative_to_work_root(path, work_root) for path in deriv_candidates
                 ],
