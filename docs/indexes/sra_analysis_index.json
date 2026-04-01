@@ -1,0 +1,245 @@
+{
+  "task_group": "sra",
+  "generated_utc": "2026-04-01T17:47:13Z",
+  "work_root": "/data/sld/homes/vguigon/slb_work",
+  "entries": [
+    {
+      "model": "sra_motor_lateralization",
+      "task_group": "sra",
+      "kernel_mm": "4",
+      "config_path": "fitlins_configs/sra/sra_motor_lateralization.cfg",
+      "model_json_path": "fitlins_models/sra/sra_motor_lateralization_smdl.json",
+      "glm": {
+        "name": "sraMotorLateralization",
+        "input": {
+          "task": [
+            "riskself"
+          ],
+          "subject": [
+            "000",
+            "001",
+            "002",
+            "003"
+          ]
+        },
+        "nodes": [
+          {
+            "level": "Run",
+            "name": "runLevel",
+            "group_by": [
+              "subject",
+              "task",
+              "run"
+            ],
+            "model_type": "glm",
+            "design_matrix": [
+              1,
+              "trial_type.button_press",
+              "trial_type.button_press_left",
+              "trial_type.button_press_right",
+              "trial_type.self_choice",
+              "trial_type.self_choice_validation",
+              "trial_type.self_iti",
+              "framewise_displacement",
+              "trans_x",
+              "trans_y",
+              "trans_z",
+              "rot_x",
+              "rot_y",
+              "rot_z",
+              "w_comp_cor_00",
+              "w_comp_cor_01",
+              "w_comp_cor_02",
+              "w_comp_cor_03",
+              "w_comp_cor_04",
+              "c_comp_cor_00",
+              "c_comp_cor_01",
+              "c_comp_cor_02",
+              "c_comp_cor_03",
+              "c_comp_cor_04"
+            ],
+            "transformations": [
+              {
+                "Name": "Factor",
+                "Input": [
+                  "trial_type"
+                ]
+              },
+              {
+                "Name": "Convolve",
+                "Input": [
+                  "trial_type.button_press",
+                  "trial_type.button_press_left",
+                  "trial_type.button_press_right",
+                  "trial_type.self_choice",
+                  "trial_type.self_choice_validation",
+                  "trial_type.self_iti"
+                ],
+                "Model": "spm"
+              }
+            ]
+          },
+          {
+            "level": "Dataset",
+            "name": "datasetLevel",
+            "group_by": [
+              "contrast"
+            ],
+            "model_type": "glm",
+            "design_matrix": [
+              1
+            ],
+            "transformations": []
+          }
+        ]
+      },
+      "contrasts_spec": [
+        {
+          "node": "runLevel",
+          "level": "Run",
+          "name": "RightVsLeft",
+          "conditions": [
+            "trial_type.button_press_left",
+            "trial_type.button_press_right"
+          ],
+          "weights": [
+            -1.0,
+            1.0
+          ],
+          "test": "t"
+        },
+        {
+          "node": "runLevel",
+          "level": "Run",
+          "name": "LeftVsRight",
+          "conditions": [
+            "trial_type.button_press_left",
+            "trial_type.button_press_right"
+          ],
+          "weights": [
+            1.0,
+            -1.0
+          ],
+          "test": "t"
+        }
+      ],
+      "fitlins_html_reports": [
+        "fitlins_derivatives/sra/sra_motor_lateralization_s4/reports/model-sraMotorLateralization.html"
+      ],
+      "pdf_reports": [],
+      "figure_manifests": [
+        "figures/sra/sra_motor_lateralization_s4/datasetLevel_p-unc_p0.01_2s/manifest.tsv",
+        "figures/sra/sra_motor_lateralization_s4/runLevel_p-unc_p0.01_2s/manifest.tsv"
+      ],
+      "updated_utc": "2026-04-01T17:47:13Z"
+    },
+    {
+      "model": "sra_visual_vs_baseline",
+      "task_group": "sra",
+      "kernel_mm": "4",
+      "config_path": "fitlins_configs/sra/sra_visual_vs_baseline.cfg",
+      "model_json_path": "fitlins_models/sra/sra_visual_vs_baseline_smdl.json",
+      "glm": {
+        "name": "sraSelfDecisionVsITI",
+        "input": {
+          "task": [
+            "riskself"
+          ],
+          "subject": [
+            "000",
+            "001",
+            "002",
+            "003"
+          ]
+        },
+        "nodes": [
+          {
+            "level": "Run",
+            "name": "runLevel",
+            "group_by": [
+              "subject",
+              "task",
+              "run"
+            ],
+            "model_type": "glm",
+            "design_matrix": [
+              1,
+              "trial_type.self_choice",
+              "trial_type.self_iti",
+              "framewise_displacement",
+              "trans_x",
+              "trans_y",
+              "trans_z",
+              "rot_x",
+              "rot_y",
+              "rot_z",
+              "w_comp_cor_00",
+              "w_comp_cor_01",
+              "w_comp_cor_02",
+              "w_comp_cor_03",
+              "w_comp_cor_04",
+              "c_comp_cor_00",
+              "c_comp_cor_01",
+              "c_comp_cor_02",
+              "c_comp_cor_03",
+              "c_comp_cor_04"
+            ],
+            "transformations": [
+              {
+                "Name": "Factor",
+                "Input": [
+                  "trial_type"
+                ]
+              },
+              {
+                "Name": "Convolve",
+                "Input": [
+                  "trial_type.self_choice",
+                  "trial_type.self_iti"
+                ],
+                "Model": "spm"
+              }
+            ]
+          },
+          {
+            "level": "Dataset",
+            "name": "datasetLevel",
+            "group_by": [
+              "contrast"
+            ],
+            "model_type": "glm",
+            "design_matrix": [
+              1
+            ],
+            "transformations": []
+          }
+        ]
+      },
+      "contrasts_spec": [
+        {
+          "node": "runLevel",
+          "level": "Run",
+          "name": "selfDecisionVsITI",
+          "conditions": [
+            "trial_type.self_choice",
+            "trial_type.self_iti"
+          ],
+          "weights": [
+            1.0,
+            -1.0
+          ],
+          "test": "t"
+        }
+      ],
+      "fitlins_html_reports": [
+        "fitlins_derivatives/sra/sra_visual_vs_baseline_s4/reports/model-sraSelfDecisionVsITI.html"
+      ],
+      "pdf_reports": [],
+      "figure_manifests": [
+        "figures/sra/sra_visual_vs_baseline_s4/datasetLevel_p-unc_p0.01_2s/manifest.tsv",
+        "figures/sra/sra_visual_vs_baseline_s4/runLevel_p-unc_p0.01_2s/manifest.tsv"
+      ],
+      "updated_utc": "2026-04-01T17:47:13Z"
+    }
+  ]
+}

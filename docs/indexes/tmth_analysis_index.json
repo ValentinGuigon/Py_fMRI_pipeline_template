@@ -1,6 +1,6 @@
 {
   "task_group": "tmth",
-  "generated_utc": "2026-04-01T16:19:54Z",
+  "generated_utc": "2026-04-01T17:46:58Z",
   "work_root": "/data/sld/homes/vguigon/slb_work",
   "entries": [
     {
@@ -134,13 +134,15 @@
       "fitlins_html_reports": [
         "fitlins_derivatives/tmth/tmth_motor_bilateral_s4/reports/model-tmThMotorBilateral.html"
       ],
-      "pdf_reports": [],
+      "pdf_reports": [
+        "reports/tmth/tmth_motor_bilateral_s4__p-unc_p0.01_2s.pdf"
+      ],
       "figure_manifests": [
         "figures/tmth/tmth_motor_bilateral_s4/datasetLevel_p-unc_p0.01_2s/manifest.tsv",
         "figures/tmth/tmth_motor_bilateral_s4/runLevel_p-unc_p0.01_2s/manifest.tsv",
         "figures/tmth/tmth_motor_bilateral_s4/subjectLevel_p-unc_p0.01_2s/manifest.tsv"
       ],
-      "updated_utc": "2026-04-01T16:19:54Z"
+      "updated_utc": "2026-04-01T17:46:58Z"
     },
     {
       "model": "tmth_motor_lateralization",
@@ -279,13 +281,15 @@
       "fitlins_html_reports": [
         "fitlins_derivatives/tmth/tmth_motor_lateralization_s4/reports/model-tmThMotorLateralization.html"
       ],
-      "pdf_reports": [],
+      "pdf_reports": [
+        "reports/tmth/tmth_motor_lateralization_s4__p-unc_p0.01_2s.pdf"
+      ],
       "figure_manifests": [
         "figures/tmth/tmth_motor_lateralization_s4/datasetLevel_p-unc_p0.01_2s/manifest.tsv",
         "figures/tmth/tmth_motor_lateralization_s4/runLevel_p-unc_p0.01_2s/manifest.tsv",
         "figures/tmth/tmth_motor_lateralization_s4/subjectLevel_p-unc_p0.01_2s/manifest.tsv"
       ],
-      "updated_utc": "2026-04-01T16:19:54Z"
+      "updated_utc": "2026-04-01T17:46:58Z"
     },
     {
       "model": "tmth_motor_vs_fixation",
@@ -414,7 +418,7 @@
         "figures/tmth/tmth_motor_vs_fixation_s4/runLevel_p-unc_p0.01_2s/manifest.tsv",
         "figures/tmth/tmth_motor_vs_fixation_s4/subjectLevel_p-unc_p0.01_2s/manifest.tsv"
       ],
-      "updated_utc": "2026-04-01T16:19:54Z"
+      "updated_utc": "2026-04-01T17:46:58Z"
     },
     {
       "model": "tmth_visual_vs_baseline",
@@ -540,14 +544,14 @@
         "fitlins_derivatives/tmth/tmth_visual_vs_baseline_s4/reports/model-tmThVisualVsBaselineSubjectpool.html"
       ],
       "pdf_reports": [
-        "reports/tmth/tmth_visual_vs_baseline_report.pdf"
+        "reports/tmth/tmth_visual_vs_baseline_s4__p-unc_p0.01_2s.pdf"
       ],
       "figure_manifests": [
         "figures/tmth/tmth_visual_vs_baseline_s4/datasetLevel_p-unc_p0.01_2s/manifest.tsv",
         "figures/tmth/tmth_visual_vs_baseline_s4/runLevel_p-unc_p0.01_2s/manifest.tsv",
         "figures/tmth/tmth_visual_vs_baseline_s4/subjectLevel_p-unc_p0.01_2s/manifest.tsv"
       ],
-      "updated_utc": "2026-04-01T16:19:54Z"
+      "updated_utc": "2026-04-01T17:46:58Z"
     }
   ]
 }
