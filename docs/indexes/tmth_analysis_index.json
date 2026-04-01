@@ -1,0 +1,553 @@
+{
+  "task_group": "tmth",
+  "generated_utc": "2026-04-01T16:19:54Z",
+  "work_root": "/data/sld/homes/vguigon/slb_work",
+  "entries": [
+    {
+      "model": "tmth_motor_bilateral",
+      "task_group": "tmth",
+      "kernel_mm": "4",
+      "config_path": "fitlins_configs/tmth/tmth_motor_bilateral.cfg",
+      "model_json_path": "fitlins_models/tmth/tmth_motor_bilateral_smdl.json",
+      "glm": {
+        "name": "tmThMotorBilateral",
+        "input": {
+          "task": [
+            "tm",
+            "th"
+          ],
+          "subject": [
+            "000",
+            "001",
+            "002",
+            "003"
+          ]
+        },
+        "nodes": [
+          {
+            "level": "Run",
+            "name": "runLevel",
+            "group_by": [
+              "subject",
+              "task",
+              "run"
+            ],
+            "model_type": "glm",
+            "design_matrix": [
+              1,
+              "trial_type.button_press",
+              "trial_type.button_press_left",
+              "trial_type.button_press_right",
+              "trial_type.choice",
+              "trial_type.wait",
+              "trial_type.feedback",
+              "trial_type.fixation",
+              "framewise_displacement",
+              "trans_x",
+              "trans_y",
+              "trans_z",
+              "rot_x",
+              "rot_y",
+              "rot_z",
+              "w_comp_cor_00",
+              "w_comp_cor_01",
+              "w_comp_cor_02",
+              "w_comp_cor_03",
+              "w_comp_cor_04",
+              "c_comp_cor_00",
+              "c_comp_cor_01",
+              "c_comp_cor_02",
+              "c_comp_cor_03",
+              "c_comp_cor_04"
+            ],
+            "transformations": [
+              {
+                "Name": "Factor",
+                "Input": [
+                  "trial_type"
+                ]
+              },
+              {
+                "Name": "Convolve",
+                "Input": [
+                  "trial_type.button_press",
+                  "trial_type.button_press_left",
+                  "trial_type.button_press_right",
+                  "trial_type.choice",
+                  "trial_type.wait",
+                  "trial_type.feedback",
+                  "trial_type.fixation"
+                ],
+                "Model": "spm"
+              }
+            ]
+          },
+          {
+            "level": "Subject",
+            "name": "subjectLevel",
+            "group_by": [
+              "subject",
+              "contrast"
+            ],
+            "model_type": "meta",
+            "design_matrix": [
+              1
+            ],
+            "transformations": []
+          },
+          {
+            "level": "Dataset",
+            "name": "datasetLevel",
+            "group_by": [
+              "contrast"
+            ],
+            "model_type": "glm",
+            "design_matrix": [
+              1
+            ],
+            "transformations": []
+          }
+        ]
+      },
+      "contrasts_spec": [
+        {
+          "node": "runLevel",
+          "level": "Run",
+          "name": "motorVsBaseline",
+          "conditions": [
+            "trial_type.button_press",
+            "trial_type.choice",
+            "trial_type.wait",
+            "trial_type.feedback",
+            "trial_type.fixation"
+          ],
+          "weights": [
+            1.0,
+            -0.25,
+            -0.25,
+            -0.25,
+            -0.25
+          ],
+          "test": "t"
+        }
+      ],
+      "fitlins_html_reports": [
+        "fitlins_derivatives/tmth/tmth_motor_bilateral_s4/reports/model-tmThMotorBilateral.html"
+      ],
+      "pdf_reports": [],
+      "figure_manifests": [
+        "figures/tmth/tmth_motor_bilateral_s4/datasetLevel_p-unc_p0.01_2s/manifest.tsv",
+        "figures/tmth/tmth_motor_bilateral_s4/runLevel_p-unc_p0.01_2s/manifest.tsv",
+        "figures/tmth/tmth_motor_bilateral_s4/subjectLevel_p-unc_p0.01_2s/manifest.tsv"
+      ],
+      "updated_utc": "2026-04-01T16:19:54Z"
+    },
+    {
+      "model": "tmth_motor_lateralization",
+      "task_group": "tmth",
+      "kernel_mm": "4",
+      "config_path": "fitlins_configs/tmth/tmth_motor_lateralization.cfg",
+      "model_json_path": "fitlins_models/tmth/tmth_motor_lateralization_smdl.json",
+      "glm": {
+        "name": "tmThMotorLateralization",
+        "input": {
+          "task": [
+            "tm",
+            "th"
+          ],
+          "subject": [
+            "000",
+            "001",
+            "002",
+            "003"
+          ]
+        },
+        "nodes": [
+          {
+            "level": "Run",
+            "name": "runLevel",
+            "group_by": [
+              "subject",
+              "task",
+              "run"
+            ],
+            "model_type": "glm",
+            "design_matrix": [
+              1,
+              "trial_type.button_press_left",
+              "trial_type.button_press_right",
+              "trial_type.choice",
+              "trial_type.wait",
+              "trial_type.feedback",
+              "trial_type.fixation",
+              "framewise_displacement",
+              "trans_x",
+              "trans_y",
+              "trans_z",
+              "rot_x",
+              "rot_y",
+              "rot_z",
+              "w_comp_cor_00",
+              "w_comp_cor_01",
+              "w_comp_cor_02",
+              "w_comp_cor_03",
+              "w_comp_cor_04",
+              "c_comp_cor_00",
+              "c_comp_cor_01",
+              "c_comp_cor_02",
+              "c_comp_cor_03",
+              "c_comp_cor_04"
+            ],
+            "transformations": [
+              {
+                "Name": "Factor",
+                "Input": [
+                  "trial_type"
+                ]
+              },
+              {
+                "Name": "Convolve",
+                "Input": [
+                  "trial_type.button_press_left",
+                  "trial_type.button_press_right",
+                  "trial_type.choice",
+                  "trial_type.wait",
+                  "trial_type.feedback",
+                  "trial_type.fixation"
+                ],
+                "Model": "spm"
+              }
+            ]
+          },
+          {
+            "level": "Subject",
+            "name": "subjectLevel",
+            "group_by": [
+              "subject",
+              "contrast"
+            ],
+            "model_type": "meta",
+            "design_matrix": [
+              1
+            ],
+            "transformations": []
+          },
+          {
+            "level": "Dataset",
+            "name": "datasetLevel",
+            "group_by": [
+              "contrast"
+            ],
+            "model_type": "glm",
+            "design_matrix": [
+              1
+            ],
+            "transformations": []
+          }
+        ]
+      },
+      "contrasts_spec": [
+        {
+          "node": "runLevel",
+          "level": "Run",
+          "name": "RightVsLeft",
+          "conditions": [
+            "trial_type.button_press_left",
+            "trial_type.button_press_right"
+          ],
+          "weights": [
+            -1.0,
+            1.0
+          ],
+          "test": "t"
+        },
+        {
+          "node": "runLevel",
+          "level": "Run",
+          "name": "LeftVsRight",
+          "conditions": [
+            "trial_type.button_press_left",
+            "trial_type.button_press_right"
+          ],
+          "weights": [
+            1.0,
+            -1.0
+          ],
+          "test": "t"
+        }
+      ],
+      "fitlins_html_reports": [
+        "fitlins_derivatives/tmth/tmth_motor_lateralization_s4/reports/model-tmThMotorLateralization.html"
+      ],
+      "pdf_reports": [],
+      "figure_manifests": [
+        "figures/tmth/tmth_motor_lateralization_s4/datasetLevel_p-unc_p0.01_2s/manifest.tsv",
+        "figures/tmth/tmth_motor_lateralization_s4/runLevel_p-unc_p0.01_2s/manifest.tsv",
+        "figures/tmth/tmth_motor_lateralization_s4/subjectLevel_p-unc_p0.01_2s/manifest.tsv"
+      ],
+      "updated_utc": "2026-04-01T16:19:54Z"
+    },
+    {
+      "model": "tmth_motor_vs_fixation",
+      "task_group": "tmth",
+      "kernel_mm": "4",
+      "config_path": "fitlins_configs/tmth/tmth_motor_vs_fixation.cfg",
+      "model_json_path": "fitlins_models/tmth/tmth_motor_vs_fixation_smdl.json",
+      "glm": {
+        "name": "tmThMotorBilateral",
+        "input": {
+          "task": [
+            "tm",
+            "th"
+          ],
+          "subject": [
+            "000",
+            "001",
+            "002",
+            "003"
+          ]
+        },
+        "nodes": [
+          {
+            "level": "Run",
+            "name": "runLevel",
+            "group_by": [
+              "subject",
+              "task",
+              "run"
+            ],
+            "model_type": "glm",
+            "design_matrix": [
+              1,
+              "trial_type.button_press",
+              "trial_type.choice",
+              "trial_type.wait",
+              "trial_type.feedback",
+              "trial_type.fixation",
+              "framewise_displacement",
+              "trans_x",
+              "trans_y",
+              "trans_z",
+              "rot_x",
+              "rot_y",
+              "rot_z",
+              "w_comp_cor_00",
+              "w_comp_cor_01",
+              "w_comp_cor_02",
+              "w_comp_cor_03",
+              "w_comp_cor_04",
+              "c_comp_cor_00",
+              "c_comp_cor_01",
+              "c_comp_cor_02",
+              "c_comp_cor_03",
+              "c_comp_cor_04"
+            ],
+            "transformations": [
+              {
+                "Name": "Factor",
+                "Input": [
+                  "trial_type"
+                ]
+              },
+              {
+                "Name": "Convolve",
+                "Input": [
+                  "trial_type.button_press",
+                  "trial_type.choice",
+                  "trial_type.wait",
+                  "trial_type.feedback",
+                  "trial_type.fixation"
+                ],
+                "Model": "spm"
+              }
+            ]
+          },
+          {
+            "level": "Subject",
+            "name": "subjectLevel",
+            "group_by": [
+              "subject",
+              "contrast"
+            ],
+            "model_type": "meta",
+            "design_matrix": [
+              1
+            ],
+            "transformations": []
+          },
+          {
+            "level": "Dataset",
+            "name": "datasetLevel",
+            "group_by": [
+              "contrast"
+            ],
+            "model_type": "glm",
+            "design_matrix": [
+              1
+            ],
+            "transformations": []
+          }
+        ]
+      },
+      "contrasts_spec": [
+        {
+          "node": "runLevel",
+          "level": "Run",
+          "name": "motorVsBaseline",
+          "conditions": [
+            "trial_type.button_press",
+            "trial_type.fixation"
+          ],
+          "weights": [
+            1.0,
+            -1.0
+          ],
+          "test": "t"
+        }
+      ],
+      "fitlins_html_reports": [
+        "fitlins_derivatives/tmth/tmth_motor_vs_fixation_s4/reports/model-tmThMotorBilateral.html"
+      ],
+      "pdf_reports": [],
+      "figure_manifests": [
+        "figures/tmth/tmth_motor_vs_fixation_s4/datasetLevel_p-unc_p0.01_2s/manifest.tsv",
+        "figures/tmth/tmth_motor_vs_fixation_s4/runLevel_p-unc_p0.01_2s/manifest.tsv",
+        "figures/tmth/tmth_motor_vs_fixation_s4/subjectLevel_p-unc_p0.01_2s/manifest.tsv"
+      ],
+      "updated_utc": "2026-04-01T16:19:54Z"
+    },
+    {
+      "model": "tmth_visual_vs_baseline",
+      "task_group": "tmth",
+      "kernel_mm": "4",
+      "config_path": "fitlins_configs/tmth/tmth_visual_vs_baseline.cfg",
+      "model_json_path": "fitlins_models/tmth/tmth_visual_vs_baseline_smdl.json",
+      "glm": {
+        "name": "tmThVisualVsBaseline_SubjectPool",
+        "input": {
+          "task": [
+            "tm",
+            "th"
+          ],
+          "subject": [
+            "000",
+            "001",
+            "002",
+            "003"
+          ]
+        },
+        "nodes": [
+          {
+            "level": "Run",
+            "name": "runLevel",
+            "group_by": [
+              "subject",
+              "task",
+              "run"
+            ],
+            "model_type": "glm",
+            "design_matrix": [
+              1,
+              "trial_type.choice",
+              "trial_type.wait",
+              "trial_type.feedback",
+              "trial_type.fixation",
+              "framewise_displacement",
+              "trans_x",
+              "trans_y",
+              "trans_z",
+              "rot_x",
+              "rot_y",
+              "rot_z",
+              "w_comp_cor_00",
+              "w_comp_cor_01",
+              "w_comp_cor_02",
+              "w_comp_cor_03",
+              "w_comp_cor_04",
+              "c_comp_cor_00",
+              "c_comp_cor_01",
+              "c_comp_cor_02",
+              "c_comp_cor_03",
+              "c_comp_cor_04"
+            ],
+            "transformations": [
+              {
+                "Name": "Factor",
+                "Input": [
+                  "trial_type"
+                ]
+              },
+              {
+                "Name": "Convolve",
+                "Input": [
+                  "trial_type.choice",
+                  "trial_type.wait",
+                  "trial_type.feedback",
+                  "trial_type.fixation"
+                ],
+                "Model": "spm"
+              }
+            ]
+          },
+          {
+            "level": "Subject",
+            "name": "subjectLevel",
+            "group_by": [
+              "subject",
+              "contrast"
+            ],
+            "model_type": "meta",
+            "design_matrix": [
+              1
+            ],
+            "transformations": []
+          },
+          {
+            "level": "Dataset",
+            "name": "datasetLevel",
+            "group_by": [
+              "contrast"
+            ],
+            "model_type": "glm",
+            "design_matrix": [
+              1
+            ],
+            "transformations": []
+          }
+        ]
+      },
+      "contrasts_spec": [
+        {
+          "node": "runLevel",
+          "level": "Run",
+          "name": "visualVsBaseline",
+          "conditions": [
+            "trial_type.choice",
+            "trial_type.wait",
+            "trial_type.feedback",
+            "trial_type.fixation"
+          ],
+          "weights": [
+            0.3333333333333333,
+            0.3333333333333333,
+            0.3333333333333333,
+            -1.0
+          ],
+          "test": "t"
+        }
+      ],
+      "fitlins_html_reports": [
+        "fitlins_derivatives/tmth/tmth_visual_vs_baseline_s4/reports/model-tmThVisualVsBaselineSubjectpool.html"
+      ],
+      "pdf_reports": [
+        "reports/tmth/tmth_visual_vs_baseline_report.pdf"
+      ],
+      "figure_manifests": [
+        "figures/tmth/tmth_visual_vs_baseline_s4/datasetLevel_p-unc_p0.01_2s/manifest.tsv",
+        "figures/tmth/tmth_visual_vs_baseline_s4/runLevel_p-unc_p0.01_2s/manifest.tsv",
+        "figures/tmth/tmth_visual_vs_baseline_s4/subjectLevel_p-unc_p0.01_2s/manifest.tsv"
+      ],
+      "updated_utc": "2026-04-01T16:19:54Z"
+    }
+  ]
+}

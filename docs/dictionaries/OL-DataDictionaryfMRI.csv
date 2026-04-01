@@ -1,0 +1,76 @@
+﻿Variable,Description,Type,Value range,Notes,Stage (raw/preprocessed),Required,Keep in .tsv file,trial_type label in .tsv file
+runNb,Run/block number,,1~8,"1-4 in ol_1, 5-8 in ol_2",Raw,Yes,Separate column,
+runID,,,,,Raw,No,No,
+trialNb,Trial number within run/block,Discrete,1~12,Goes 1-12 then repeats,Raw,Yes,Separate column,
+trType,Trial type,Nominal,"1,2","1 for observe, 2 for play",Raw,Yes,Separate column,
+goalToken,Goal token,Nominal,"1,2,3","Token color that is rewarded. 1=green, 2=red, 3=blue",Raw,Yes,Separate column,
+uncertainty,Slot machine uncertainty level,Nominal,"1,2","More uncertain = 2, less uncertain = 1",Raw,Yes,Separate column,
+unavAct,Unavailable action,Nominal,"1,2,3","Unavailable slot machine. 1 = left, 2 = middle, 3 = right",Raw,Yes,Separate column,
+corrAct,Correct action,Nominal,"1,2,3","Correct action given the (un)availability of the options. 1 = left, 2 = middle, 3 = right",Raw,Yes,Separate column,
+bestAct,Best action,Nominal,"1,2,3","Best action of all three machines. 1 = left, 2 = middle, 3 = right",Raw,Yes,Separate column,
+vertOrd,Slot machine vertical order for image,Nominal,"1,2,3","Determines slot machine image, see images folder",Raw,Yes,Separate column,
+horizOrd,Horizontal order of slot machines,Nominal,"1,2,3","From design matrix, 1= [B,G,R], 2 = [R,B,G],3= [B,G,R]",Raw,Yes,Separate column,
+isBreak,Last trial of block,,"0,1","1 if last trial, 0 if not",Raw,No,No,
+tokenIfLeft,Token if player chooses left,Nominal,"1,2,3","Token color provided if player chooses left, 1=green, 2=red, 3=blue",Raw,Yes,Separate column,
+tokenIfMid,Token if player chooses middle,Nominal,"1,2,3","Token color provided if player chooses middle, 1=green, 2=red, 3=blue",Raw,Yes,Separate column,
+tokenIfRight,Token if player chooses right,Nominal,"1,2,3","Token color provided if player chooses right, 1=green, 2=red, 3=blue",Raw,Yes,Separate column,
+trials.thisRepN,,,0,,Raw,No,No,
+trials.thisTrialN,Trial number ,Discrete,0-47,,Raw,Yes,Separate column,
+trials.thisN,,,,,Raw,No,No,
+trials.thisIndex,,,,,Raw,No,No,
+scannerTimer_sync,Scanner Timer at sync complete,Continuous,Should be ~0,,Raw,No,No,
+key_resp.keys,Keypresses during scanner sync,Nominal,,Should be None,Raw,No,No,
+key_resp.rt,Keypress RT during scanner sync,Continuous,,Only exists if key_resp.keys exists,Raw,No,No,
+sync_scanner_sync_scanner_text_started,,,,,Raw,No,No,
+scannerTimer_dummy_Start,Scanner time at dummy,Continuous,,,Raw,No,No,
+scannerTimer_dummy_End,Scanner time at dummy end,Continuous,,,Raw,No,No,
+scannerTimer_fixation_ob_Start,Scanner time at 'Observe' display (start of observe trials),Continuous,,,Raw,Yes,Pivot to onset,observe_start
+jitter1,Jitter 1 duration ('Observe' display),Continuous,,Observe trials only,Raw,Yes,Separate column,
+fixation_ob_dur,Actual 'Observe' display duration,Continuous,,0 on play trials,Raw,Yes,Pivot to duration,observe_start
+fixation_ob_fixation_ob_text_started,,,,,Raw,No,No,
+scannerTimer_slot_machine_Start,Scanner time at observe trials slot machine,Continuous,,Observe trials only,Raw,Yes,Pivot to onset,observe_stimulus
+slot_machine_dur,Slot machine duration on observe trials,,~2 or 0,"2 on Observe, 0 on Play",Raw,Yes,Pivot to duration,observe_stimulus
+slot_machine_left_started,,,,,Raw,No,No,
+scannerTimer_wait_partner_Start,Scanner time at observe trials wait partner,Continuous,,Observe trials only,Raw,Yes,Pivot to onset,observe_wait
+jitter2,Jitter 2 duration (wait partner choice),Continuous,,Observe trials only,Raw,Yes,Separate column,
+wait_partner_dur,Actual wait partner duration (jitter 2),Continuous,,"Observe trials = Jitter 2, play = 0",Raw,Yes,Pivot to duration,observe_wait
+wait_partner_wait_partner_text_started,,,,,Raw,No,No,
+scannerTimer_play_video_Start,Scanner time at observe trials play video,Continuous,,Observe trials only,Raw,Yes,Pivot to onset,observe_video
+play_video_dur,Actual watch video duration,Continuous,~2.3 or ~0,"Observe trials only, always 0.5 seconds",Raw,Yes,Pivot to duration,observe_video
+scannerTimer_fixation1_Start,Scanner time at observe trials fixation cross (ITI),,,Observe trials only,Raw,Yes,Pivot to onset,iti_fixation
+jitter3,Jitter 3 duration (end ITI),Continuous,0.5,"Observe trials only, always 0.5 seconds",Raw,Yes,Separate column,
+fixation1_dur,Actual duration of observe trials fixation cross (ITI),Continuous,,"Observe trials only, always 0.5 seconds",Raw,Yes,Pivot to duration,iti_fixation
+fixation1_fixation1_cross_started,,,,,Raw,No,No,
+scannerTimer_fixation_pl_Start,Scanner time at 'Play' display (start of play  trials),Continuous,,Play trials only,Raw,Yes,Pivot to onset,play_start
+fixation_pl_dur,Actual 'Play' display duration,,,0 on Observe trials,Raw,Yes,Pivot to duration,play_start
+fixation_pl_fixation_pl_text_started,,,,,Raw,No,No,
+scannerTimer_self_choice_Start,Scanner time at play trials self choice (slot machine onset),Continuous,,Play trials only,Raw,Yes,Pivot to onset,play_choice
+self_choice_dur,Duration of play slot machine presentation (also RT),Continuous,,"Play trials only, observe = 0",Raw,Yes,Pivot to duration,play_choice
+choice_keys,Keypress for choice,Nominal,"['left']['down']['right'], None",,Raw,Yes,Separate column,
+self_choice_left_3_started,,,,,Raw,No,No,
+scannerTimer_feedback_Start,Scanner timer at play trials choice validation,Continuous,,Play trials only,Raw,Yes,Pivot to onset,play_validation
+feedback_dur,Actual choice validation duration,Continuous,~0.5 or 0,"Play trials ~0.5, observe trials ~0",Raw,Yes,Pivot to duration,play_validation
+feedback_left_feedback_started,,,,,Raw,No,No,
+scannerTimer_wait_token_Start,Scanner timer at play trials waiting for token,Continuous,,Play trials only,Raw,Yes,Pivot to onset,play_wait
+wait_token_dur,Actual wait for token duration,Continuous,1 to 4s,~Jitter 5,Raw,Yes,Pivot to duration,play_wait
+wait_token_wait_token_text_started,,,,,Raw,No,No,
+scannerTimer_token_Start,Scanner timer at play trials seeing token ,Continuous,,Play trials only,Raw,Yes,Pivot to onset,play_token
+token_dur,Actual token duration,,~1 or 0,"Play trials ~1, observe trials ~0",Raw,Yes,Pivot to duration,play_token
+token_token_image_started,,,,,Raw,No,No,
+scannerTimer_fixation2_Start,Scanner time at play trials fixation cross (ITI),Continuous,,Play trials only,Raw,Yes,Pivot to onset,iti_fixation
+score_thistrial,Score on this trial,Discrete,"0,10","Score from token color; 0 on observe trials and token color incorrect, 10 on color correct",Raw,Yes,Separate column,
+totalscore,Total score,Discrete,mutiple of 10,Running total score at this trial,Raw,Yes,Separate column,
+fixation2_dur,Actual duration of play trials fixation cross (ITI),Continuous,0-3.5,0.5+3-RT,Raw,Yes,Pivot to duration,iti_fixation
+fixation2_fixation2_cross_started,,,,,Raw,No,No,
+jitter4,Jitter 4 duration ('Play' display),Continuous,1~4,Play trials only,Raw,Yes,Separate column,
+choice_RT,RT for choosing action,Continuous,0-3,Play trials only,Raw,Yes,Separate column,
+responded,Responded or not,Nominal,"0,1","1=responded, 0=missed response, only on play trials",Raw,Yes,Separate column,
+jitter5,Jitter 5 duration (wait token),Continuous,1~4,Play trials only,Raw,Yes,Separate column,
+jitter6,Jitter 6 duration (end ITI),Continuous,0.5,"Play trials only, 0.5",Raw,Yes,Separate column,
+scannerTimer_trial_End,Scanner time at end of each trial,Continuous,,,Raw,Yes,Separate column,
+scannerTimer_exp_End,Scanner time at end of experiment,Continuous,,,Raw,Yes,Separate column,
+pOrder,POrder,Nominal,1-150,Participant number determining order of tasks and stimuli,Raw,Yes,Separate column,
+date,Date and time,String, in YYYY_Month_DD_HHMM format (e.g. 2025_Aug_19_1345),,Raw,Yes,Separate column,
+expName,Experiment name,String,,,Raw,Yes,Separate column,
+psychopyVersion,Version of psychopy used (e.g. 2021.1.2),String,,,Raw,Yes,Separate column,
+frameRate,Records the monitor's frame rate (in fps),Continuous,~60 with variation,,Raw,Yes,Separate column,

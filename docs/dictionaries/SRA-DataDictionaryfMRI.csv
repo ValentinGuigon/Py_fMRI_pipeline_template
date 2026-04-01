@@ -1,0 +1,86 @@
+﻿Variable,Description,Type,Value range,Notes,In Block (self/social),Stage (raw/preprocessed),Required,Keep in .tsv file,trial_type label in .tsv file
+block,Self vs social block,,"1,2","1 = self, 2 = social",Both,raw,Yes,Separate column,
+trialType,Trial type,Discrete,"1,2,3","1 = risk, 2 = ambiguity, 3 = loss",Both,raw,Yes,Separate column,
+rewardMag,Reward amount of gamble option,Continuous,2 to 40,,Both,raw,Yes,Separate column,
+lossMag,Loss amount of gamble option,Continuous,-14 to 0,,Both,raw,Yes,Separate column,
+safeMag,Amount of safe option,Continuous,1 to 12,,Both,raw,Yes,Separate column,
+rewardProb,Probability of receiving reward (vs loss) in gamble option,Continuous,0.1-0.9 in 0.1 increments,,Both,raw,Yes,Separate column,
+safeProb,"Probability of receiving safeMag amount (vs getting 0) in safe option, sometimes is 0.5 in ambiguity trial)",Discrete,"1, 0.5",,Both,raw,Yes,Separate column,
+ambiguity,"Whether trial is ambiguity trial and amount of ambiguity (0 = risk trial with no ambiguity, 0.25/0.5/0.75 = ambiguity trial)",Discrete,"0, 0.25, 0.5, 0.75",,Both,raw,Yes,Separate column,
+trials.thisRepN,,,0,,,raw,No,No,
+trials.thisTrialN,Trial number,,0-41,Trial number in task (self block),Self,raw,No,No,
+trials.thisN,Trial number,,0-41,Trial number in task (self block),Self,raw,Yes,Separate column,
+trials.thisIndex,Trial number,,0-41,Trial number in task (self block),Self,raw,No,No,
+outcome,"Outcome/reward of trial (will be one of these: safeMag, rewardMag, lossMag)",Continuous,range of possible reward values,"outcomes are not actually shown to participants, this is just to calculate the bonus",Both,raw,Yes,Separate column,
+scannerTimer_sync,Scanner time at sync complete,,~0,Should be ~0,Both,raw,No,No,
+instruction.started,,,,,Both,raw,No,No,
+scannerTimer_dummy_Start,Scanner time at dummy start,Continuous,,,Both,raw,No,No,
+dummy_fix.started,,,,,Both,raw,No,No,
+scannerTimer_dummy_End,Scanner time at dummy end,Continuous,,,Both,raw,No,No,
+scannerTimer_self_Start,Scanner time at self choice,Continuous,,,Self,raw,Yes,Pivot to onset,self_choice
+gamble_left_self,"Whether the safe option was on the left (0= safe option on left, 1 = safe option right)",Discrete,"0,1",,Self,raw,Yes,Separate column,
+gamble_left_social,"Whether the safe option was on the left (0= safe option on left, 1 = safe option right)",Discrete,"0,1",,Social,raw,Yes,Separate column,
+reward_top_self,"Gamble top was reward (vs loss) (TRUE = reward was on top, FALSE = reward was on the bottom)",Boolean,"TRUE, FALSE",,Both,raw,Yes,Separate column,
+top_yellow_self,"Gamble top option is gold color (vs blue)(TRUE = top was gold, FALSE = bottom was gold)",Boolean,"TRUE, FALSE","(TRUE = top was yellow, FALSE = bottom was yellow)",Both,raw,Yes,Separate column,
+selfOptDisplayDur,Self choice duration ,Continuous,<3,,Self,raw,Yes,Pivot to duration,self_choice
+self_keys,Which option the player chose (left/right),Nominal,"['left'],['right']",,Self,raw,Yes,Separate column,
+self_RT,RT to choose safe/gamble options in each trial,Continuous,<3,,Self,raw,Yes,Separate column,
+self_safe_top_started,,,,,Self,raw,No,No,
+scannerTimer_self_confirm_Start,Scanner time at self confirm,Continuous,,,Self,raw,Yes,Pivot to onset,self_choice_validation
+self_responded,"Self choice responded (1 = responded, 0 = missed)",Boolean,"0,1",,Self,raw,Yes,Separate column,
+selfConfirmationDur,Confirmation duration,Continuous,~0.5,Self confirmation/validation screen duration,Self,raw,Yes,Pivot to duration,self_choice_validation
+self_confirm_safe_top_5_started,,,,,Self,raw,No,No,
+scannerTimer_jitterself_Start,Scanner time at self fixation start,Continuous,,,Self,raw,Yes,Pivot to onset,self_iti
+jitterself,Jitterself (fixation),Continuous,0.5-2.5,from csv,Self,raw,Yes,Separate column,
+selfJitterDur,Fixation duration (self),Continuous,~0.5-5.5,jitterself + 3 -RT,Self,raw,Yes,Pivot to duration,self_iti
+jitter_self_jitterself_started,,,,,Self,raw,No,No,
+ch_safe,"Safe character's choice (0 = safe option, 1 = risky option)",Nominal,"0,1",,Social,raw,Yes,Separate column,
+ch_risky,"Risky character's choice (0 = safe option, 1 = risky option)",Nominal,"0,1",,Social,raw,Yes,Separate column,
+trials_2.thisRepN,,,0,,Social,raw,No,No,
+trials_2.thisTrialN,Trial number,,0-41,Trial number in task (social block),Social,raw,No,No,
+trials_2.thisN,Trial number,,0-41,Trial number in task (social block),Social,raw,Yes,Separate column,
+trials_2.thisIndex,Trial number,,0-41,Trial number in task (social block),Social,raw,No,No,
+scannerTimer_social_infoseek_Start,Scanner timer at social infoseek start,Continuous,,,Social,raw,Yes,Pivot to onset,social_infoseek
+slider_response,"Slider position (for prob. of seeing social info) chosen by participant (default 3.5 if missed); 1 = not at all, 6 = extremely)",Discrete,1-6 in 1 increments,"Slider position chosen by participant (default 3.5 if missed); 1 = not at all, 6 = extremely)",Social,raw,Yes,Separate column,
+socialInfoChoiceDisplayDur,Social choice slider duration,Continuous,~5,Should = 5 seconds,Social,raw,Yes,Pivot to duration,social_infoseek
+social_infoseek_keys,Keypresses during social infoseek,Nominal,"['left', 'right','right'] etc",,Social,raw,Yes,Separate column,
+social_infoseek_RTs,List of slider response RTs,Nominal,[list of numbers],,Social,raw,Yes,Separate column,
+social_infoseek_finalRT,RT to final slider response,Continuous,<5,,Social,raw,Yes,Separate column,
+social_infoseek_safe_top_2_started,,,,,Social,raw,No,No,
+scannerTimer_social_infoseek_confirm_Start,Scanner timer at slider choice confirmation start,Continuous,,,Social,raw,Yes,Pivot to onset,social_infoseek_validation
+social_infoseek_responded,"Social infoseek responded (1 = responded, 0 = missed)",Boolean,"0,1","1 = responded, 0 = missed",Social,raw,Yes,Separate column,
+socialInfoConfirmDur,slider choice confirmation duration,Continuous,~0.5,Should = 0.5 s,Social,raw,Yes,Pivot to duration,social_infoseek_validation
+social_infoseek_confirm_safe_top_6_started,,,,,Social,raw,No,No,
+scannerTimer_jitter_social_1_Start,Scanner timer at social fixation 1 start,Continuous,,,Social,raw,Yes,Pivot to onset,social_fixation1
+jittersocial1,Jitter1 (fixation before seeing social info),Continuous,0.5-2.5,,Social,raw,Yes,Separate column,
+socialJitter1Dur,Jitter1 (fixation before seeing social info) duration,Continuous,,Should = jitter1 but with slippage,Social,raw,Yes,Pivot to duration,social_fixation1
+jitter_social_1_jittersocial1_started,,,,,Social,raw,No,No,
+scannerTimer_social_info_Start,Scanner timer at social seeinfo,Continuous,,,Social,raw,Yes,Pivot to onset,social_info
+seeinfo_prob,Probability of seeing info ,Discrete,"0.10, 0.26, 0.42, 0.58, 0.74, 0.9",From slider choice,Social,raw,Yes,Separate column,
+riskyplayer,Risky character's name,Nominal,Alex or Jamie,,Social,raw,Yes,Separate column,
+seeInfo,"Whether participant actually saw social info (1 = yes, 0 = no)",Nominal,"1,0",,Social,raw,Yes,Separate column,
+socialInfoDisplayDur,Social see info duration,Continuous,~2,Should = 2,Social,raw,Yes,Pivot to duration,social_info
+social_info_safe_top_3_started,,,,,Social,raw,No,No,
+scannerTimer_jitter_social_2_Start,Scanner timer at social fixation 2,Continuous,,,Social,raw,Yes,Pivot to onset,social_fixation2
+socialJitter2Dur,Duration of social fixation 2,Continuous,,,Social,raw,Yes,Pivot to duration,social_fixation2
+jitter_social_2_jittersocial2_started,,,,,Social,raw,No,No,
+jittersocial2,Jitter2 (fixation before choice),Continuous,1~3,,Social,raw,Yes,Separate column,
+scannerTimer_social_choice_Start,Scanner timer at start of social choice,Continuous,,,Social,raw,Yes,Pivot to onset,social_choice
+socialOptDisplayDur,Social choice routine duration,Continuous,,Should = social_choice_RT,Social,raw,Yes,Pivot to duration,social_choice
+social_choice_keys,Keypress of social choice,Nominal,"['left'],['right'], None",,Social,raw,Yes,Separate column,
+social_choice_RT,RT of social choice,Continuous,<2,,Social,raw,Yes,Separate column,
+social_choice_safe_top_4_started,,,,,Social,raw,No,No,
+scannerTimer_social_choice_confirm_Start,Scanner timer at social choice confirmation start,Continuous,,,Social,raw,Yes,Pivot to onset,social_choice_validation
+social_choice_responded,"Social choice responded (1 = responded, 0 = missed)",Boolean,"0,1","1 = responded, 0 = missed",Social,raw,Yes,Separate column,
+socialChoiceConfirmDur,Social choice confirmation duration,Continuous,~0.5,Should = 0.5 s,Social,raw,Yes,Pivot to duration,social_choice_validation
+social_choice_confirm_safe_top_7_started,,,,,Social,raw,No,No,
+scannerTimer_jitter_social_3_Start,Scanner timer at social fixation at end of trial start,Continuous,,,Social,raw,Yes,Pivot to onset,social_iti
+socialJitter3Dur,Social end fixation duration,Continuous,,Jitter3 +2-RT,Social,raw,Yes,Pivot to duration,social_iti
+jittersocial3,Jitter3 (fixation at end of trial),Continuous,1~3,,Social,raw,Yes,Separate column,
+jitter_social_3_jittersocial3_started,,,,,Social,raw,No,No,
+scannerTimer_trial_End,Scanner timer at end of each trial,Continuous,,,Both,raw,Yes,Separate column,
+pOrder,pOrder,Discrete,1-150,,,raw,Yes,Separate column,
+date,Date and time,String,, in YYYY_Month_DD_HHMM format (e.g. 2025_Aug_19_1345),,raw,Yes,Separate column,
+expName,"Name of exported file, excluding pOrder & date (e.g socialRA_social_1_scanner)",String,,,,raw,Yes,Separate column,
+psychopyVersion,Version of psychopy used (e.g. 2021.1.2),String,,,,raw,Yes,Separate column,
+frameRate,Records the monitor's frame rate (in fps),Continuous,~60 with variation,,,raw,Yes,Separate column,

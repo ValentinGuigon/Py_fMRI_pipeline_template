@@ -64,8 +64,8 @@ import pandas as pd
 
 # ---------- Paths ----------
 BEHAV_ROOT = Path("/data/sld/homes/collab/slb/behav_data/fMRI/data")
-BIDS_ROOT = Path("/data/sld/homes/gdmahaja/ol_work/slb_bids_runs")
-OL_DICT = Path("/data/sld/homes/gdmahaja/ol_work/docs/OL-DataDictionaryfMRI.csv")
+BIDS_ROOT = Path("/data/sld/homes/vguigon/slb_work/slb_bids_runs")
+OL_DICT = Path("/data/sld/homes/vguigon/slb_work/docs/dictionaries/OL-DataDictionaryfMRI.csv")
 
 # ---------- OL runs ----------
 TASK_RUNS = [

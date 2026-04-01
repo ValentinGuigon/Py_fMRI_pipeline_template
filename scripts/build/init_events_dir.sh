@@ -13,8 +13,8 @@
 #
 # Usage:
 #   bash init_events_dir.sh \
-#     --bids-dir  /data/sld/homes/vguigon/work/slb_bids_runs \
-#     --events-dir /data/sld/homes/vguigon/work/slb_events
+#     --bids-dir  /data/sld/homes/vguigon/slb_work/slb_bids_runs \
+#     --events-dir /data/sld/homes/vguigon/slb_work/slb_events
 
 set -euo pipefail
 

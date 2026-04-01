@@ -1,0 +1,42 @@
+Bootstrap: docker
+From: mambaorg/micromamba:1.5.10
+
+%labels
+    Author vguigon
+    Purpose "FitLins 0.11.0 stable stack (pybids 0.15.x, pandas 1.5)"
+
+%environment
+    # Quiet, writable matplotlib config for HPC / SLURM
+    export MPLCONFIGDIR=/tmp/mplconfig
+    export PATH=/opt/conda/envs/fitlins/bin:$PATH
+
+%files
+    environment.yml /environment.yml
+
+%post
+    set -e
+
+    # Minimal system dependencies
+    apt-get update
+    apt-get install -y --no-install-recommends \
+        ca-certificates \
+        git \
+    && rm -rf /var/lib/apt/lists/*
+
+    # Create FitLins environment
+    micromamba create -y -n fitlins -f /environment.yml
+    micromamba clean -a -y
+
+    # Sanity checks (fail early if anything is wrong)
+    /opt/conda/envs/fitlins/bin/python -c "import sys; print('python', sys.version)"
+    /opt/conda/envs/fitlins/bin/python -c \
+      "import bids, pandas, fitlins, nipype, nilearn, matplotlib; \
+       print('fitlins', fitlins.__version__); \
+       print('pybids', bids.__version__); \
+       print('pandas', pandas.__version__); \
+       print('nipype', nipype.__version__); \
+       print('nilearn', nilearn.__version__); \
+       print('matplotlib', matplotlib.__version__)"
+
+%runscript
+    exec /opt/conda/envs/fitlins/bin/fitlins "$@"

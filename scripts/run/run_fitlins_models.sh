@@ -6,7 +6,7 @@ set -euo pipefail
 # =========================
 # Goals:
 # - Works with any BIDS root, any model JSON, any task (as defined by the model)
-# - Output/work dirs can live anywhere (we bind what we need)
+# - Output/slb_work dirs can live anywhere (we bind what we need)
 # - Derivatives root/label configurable
 # - Container configurable
 #
@@ -21,7 +21,7 @@ set -euo pipefail
 # -------------------------
 # Defaults
 # -------------------------
-CONTAINER_DEFAULT="/data/sld/homes/vguigon/work/containers/fitlins_patched/fitlins-0.11.0_pybids-0.15.6_patched.sif"
+CONTAINER_DEFAULT="/data/sld/homes/vguigon/slb_work/containers/fitlins_patched/fitlins-0.11.0_pybids-0.15.6_patched.sif"
 FITLINS_BIN_DEFAULT="/opt/conda/envs/fitlins/bin/fitlins"
 
 DERIV_ROOT_DEFAULT="/data/sld/homes/collab/slb/derivatives"
@@ -36,8 +36,8 @@ MEM_GB_DEFAULT="16"
 SMOOTH_DEFAULT=""
 
 # Work/output defaults (if not provided)
-OUT_PARENT_DEFAULT="/data/sld/homes/vguigon/work/fitlins_derivatives"
-WORK_DIR_DEFAULT="/data/sld/homes/vguigon/work/work_fitlins"
+OUT_PARENT_DEFAULT="/data/sld/homes/vguigon/slb_work/fitlins_derivatives"
+WORK_DIR_DEFAULT="/data/sld/homes/vguigon/slb_work/work_fitlins"
 
 # -------------------------
 # Usage
@@ -64,8 +64,8 @@ Optional:
 
   --out-parent <dir>       Parent folder for outputs on host. Default: ${OUT_PARENT_DEFAULT}
   --out-suffix <str>       Output folder name under out-parent. Default: model stem
-  --work-dir <dir>         Work dir on host (will create subfolder). Default: ${WORK_DIR_DEFAULT}
-  --work-suffix <str>      Work subfolder name. Default: model stem
+  --slb_work-dir <dir>         Work dir on host (will create subfolder). Default: ${WORK_DIR_DEFAULT}
+  --slb_work-suffix <str>      Work subfolder name. Default: model stem
 
   --space <space>          Space label. Default: ${SPACE_DEFAULT}
   --ncpus <int>            Default: ${NCPUS_DEFAULT}
@@ -156,8 +156,8 @@ while [[ $# -gt 0 ]]; do
 
     --out-parent)    OUT_PARENT="${2:-}"; shift 2;;
     --out-suffix)    OUT_SUFFIX="${2:-}"; shift 2;;
-    --work-dir)      WORK_DIR="${2:-}"; shift 2;;
-    --work-suffix)   WORK_SUFFIX="${2:-}"; shift 2;;
+    --slb_work-dir)      WORK_DIR="${2:-}"; shift 2;;
+    --slb_work-suffix)   WORK_SUFFIX="${2:-}"; shift 2;;
 
     --space)         SPACE="${2:-}"; shift 2;;
     --ncpus)         NCPUS="${2:-}"; shift 2;;
@@ -230,7 +230,7 @@ add_bind "${DERIV_ROOT}"
 # Bind model JSON parent directory (so the exact file path exists in container)
 add_bind "$(dirname "${MODEL_JSON}")"
 
-# Bind output/work parents
+# Bind output/slb_work parents
 add_bind "$(dirname "${OUT_DIR_HOST}")"
 add_bind "$(dirname "${WORK_DIR_HOST}")"
 
@@ -284,7 +284,7 @@ CMD=(
   --model "${MODEL_JSON}"
   --participant-label "${SUBJ_ARR[@]}"
   --space "${SPACE}"
-  --work-dir "${WORK_DIR_HOST}"
+  --slb_work-dir "${WORK_DIR_HOST}"
   --n-cpus "${NCPUS}"
   --mem-gb "${MEM_GB}"
   --drop-missing

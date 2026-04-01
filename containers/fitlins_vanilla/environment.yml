@@ -1,0 +1,17 @@
+name: fitlins
+channels:
+  - conda-forge
+dependencies:
+  - python=3.9
+  - pip
+  - numpy
+  - scipy
+  - pandas=1.5.*
+  - nibabel
+  - nipype
+  - matplotlib=3.7.*
+  - nilearn=0.9.2
+  - setuptools<81
+  - pip:
+      - fitlins==0.11.0
+      - pybids==0.15.6

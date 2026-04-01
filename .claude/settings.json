@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls -la /c/Users/vguigon/Desktop/Research_directory/Tools/Py_fMRI_pipeline_template/fitlins_configs/*/)",
+      "Bash(ls -la /c/Users/vguigon/Desktop/Research_directory/Tools/Py_fMRI_pipeline_template/fitlins_models/*/)",
+      "Bash(wc -l /c/Users/vguigon/Desktop/Research_directory/Tools/Py_fMRI_pipeline_template/docs/fitlins_model_reports_examples/*.html)",
+      "Bash(grep -o '<img[^>]*alt' /c/Users/vguigon/Desktop/Research_directory/Tools/Py_fMRI_pipeline_template/docs/fitlins_model_reports_examples/*.html)",
+      "Bash(grep -c 'alt=' /c/Users/vguigon/Desktop/Research_directory/Tools/Py_fMRI_pipeline_template/docs/fitlins_model_reports_examples/*.html)"
+    ]
+  }
+}

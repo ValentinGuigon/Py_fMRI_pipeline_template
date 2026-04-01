@@ -25,7 +25,7 @@ This supports two motor models:
 
 BUTTON PRESS ONSET
 ------------------
-  onset = self_decision + choice_RT_i
+  onset = self_choice + choice_RT_i
 
 self_RT  : stringified list e.g. '[0.317, 0.684, 1.420]'  (relative to choice start)
 self_keys : stringified list e.g. "['left', 'left', 'right']"
@@ -103,7 +103,7 @@ def process_tsv(src_path: Path, dst_path: Path, dry_run: bool) -> int:
         raise ValueError("Missing columns {}: {}".format(
             missing, src_path.name))
 
-    choice_rows = df[df["trial_type"] == "self_decision"]
+    choice_rows = df[df["trial_type"] == "self_choice"]
     if len(choice_rows) == 0:
         print("[WARN] No choice rows: {}".format(src_path.name))
         return 0

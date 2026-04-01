@@ -50,8 +50,8 @@ import pandas as pd
 
 # ---------- Paths ----------
 BEHAV_ROOT = Path("/data/sld/homes/collab/slb/behav_data/fMRI/data")
-BIDS_ROOT = Path("/data/sld/homes/gdmahaja/ol_work/slb_bids_runs")
-SRA_DICT = Path("/data/sld/homes/gdmahaja/ol_work/docs/SRA-DataDictionaryfMRI.csv")
+BIDS_ROOT = Path("/data/sld/homes/vguigon/slb_work/slb_bids_runs")
+SRA_DICT = Path("/data/sld/homes/vguigon/slb_work/docs/dictionaries/SRA-DataDictionaryfMRI.csv")
 
 # ---------- SRA runs ----------
 # (cond_folder, run_folder, BIDS task label, BIDS run label or None, block)

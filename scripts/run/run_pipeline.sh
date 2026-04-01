@@ -4,7 +4,7 @@ set -euo pipefail
 # ----------------------------------------
 # Defaults (override via --config or CLI flags)
 # ----------------------------------------
-WORK_ROOT="/data/sld/homes/vguigon/work"
+WORK_ROOT="/data/sld/homes/vguigon/slb_work"
 BIDS_DIR="${WORK_ROOT}/slb_bids_runs"
 
 DERIV_ROOT="/data/sld/homes/collab/slb/derivatives"
@@ -15,6 +15,7 @@ SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 MODELS_DIR="${WORK_ROOT}/fitlins_models"
 OUT_PARENT="${WORK_ROOT}/fitlins_derivatives"
 FIG_PARENT="${WORK_ROOT}/figures"
+REPORTS_PARENT="${WORK_ROOT}/reports"
 
 # Task group (optional): if set, all output dirs are namespaced under a subdir.
 # Set in your config file to group models by task/study (e.g. TASK_GROUP="tmth").
@@ -28,6 +29,7 @@ RUN_FITLINS_SH="${SCRIPTS_DIR}/run_fitlins_models.sh"
 FIX_REPORT_PY="${SCRIPTS_DIR}/fix_fitlins_reports.py"
 PLOT_STATMAPS_PY="${SCRIPTS_DIR}/plot_fmri_statmaps.py"
 PARSE_MODEL_PY="${SCRIPTS_DIR}/parse_model.py"
+REPORT_PY="${SCRIPTS_DIR}/../report/generate_model_report.py"
 
 # Model
 MODEL=""        # e.g. tm_visual_vs_fixation_compcor  (stem only, no _smdl.json)
@@ -91,9 +93,13 @@ CLUSTER_EXTENT=""   # minimum cluster size in voxels; empty = off
 VIEW3D="0"          # set to 1 to generate _3d.html interactive viewers
 
 # Control
-STEPS="all"   # all | fitlins | fixreport | plot-run | plot-group  (comma-separated)
+STEPS="all"   # all | fitlins | fixreport | plot-run | plot-group | report  (comma-separated)
 FORCE="0"
 DRY_RUN="0"
+
+# Reporting
+REPORT_OUTPUT=""
+REPORT_THR_SUFFIX=""
 
 # ----------------------------------------
 # Config file loading
@@ -136,6 +142,7 @@ Optional - model / paths:
   --models-dir <dir>      Default: ${MODELS_DIR}
   --out-parent <dir>      Default: ${OUT_PARENT}
   --fig-parent <dir>      Default: ${FIG_PARENT}
+  --reports-parent <dir>  Default: ${REPORTS_PARENT}
   --task-group <name>     Namespace all outputs under a subdir (e.g. "tmth").
                           Sets fitlins_derivatives/<name>/, figures/<name>/, fitlins_models/<name>/
                           Typically set in the config file as TASK_GROUP="tmth".
@@ -165,6 +172,9 @@ Optional - plot filters (all auto-derived from model JSON if omitted):
   --plot-outdir-run <dir>  Explicit run-level figure dir
   --plot-outdir-group <dir> Explicit group-level figure dir
                             (node name appended automatically when multiple group nodes)
+  --report-output <pdf>    Output PDF path for the report step
+  --report-thr-suffix <s>  Threshold suffix passed to generate_model_report.py
+                           Default: auto-derived from threshold settings
 
 Optional - thresholding:
   --thr-mode <mode>       none | fixed | p-unc | fdr | bonferroni | ari. Default: ${THR_MODE}
@@ -184,7 +194,7 @@ Optional - rendering:
   --no-plot-abs           Disable absolute-value plotting
 
 Control:
-  --steps <list>          Comma-separated: fitlins,fixreport,plot-run,plot-group,all
+  --steps <list>          Comma-separated: fitlins,fixreport,plot-run,plot-group,report,all
                           Default: all
   --force                 Re-run even if outputs already exist
   --dry-run               Print commands without executing
@@ -195,7 +205,7 @@ Examples:
   $(basename "$0") --model-stem tm_visual_vs_fixation_compcor
 
   # With config file:
-  $(basename "$0") --config configs/tmth.cfg --steps plot-run,plot-group
+  $(basename "$0") --config configs/tmth.cfg --steps plot-run,plot-group,report
 
   # Override threshold only:
   $(basename "$0") --model-stem tmth_visual_vs_fixation_compcor --thr-mode fixed --thr-fixed 4.0
@@ -232,6 +242,17 @@ parse_model_field() {
   python3 "${PARSE_MODEL_PY}" "${MODEL_JSON}" --field "${field}"
 }
 
+build_thr_suffix() {
+  local suffix="${THR_MODE}"
+  [[ "${THR_MODE}" == "p-unc" ]] && suffix+="_p${P_UNC}"
+  [[ "${THR_MODE}" == "fixed" ]] && suffix+="_t${THR_FIXED}"
+  [[ "${THR_MODE}" == "fdr" || "${THR_MODE}" == "bonferroni" || "${THR_MODE}" == "ari" ]] && suffix+="_a${ALPHA}"
+  [[ "${TWO_SIDED}" == "1" ]] && suffix+="_2s" || suffix+="_1s"
+  [[ -n "${DF_OVERRIDE}" ]] && suffix+="_df${DF_OVERRIDE}"
+  [[ -n "${ROI_MASK}" ]] && suffix+="_svc"
+  echo "${suffix}"
+}
+
 # ----------------------------------------
 # Parse CLI args
 # ----------------------------------------
@@ -247,6 +268,7 @@ while [[ $# -gt 0 ]]; do
     --models-dir)        MODELS_DIR="${2:-}"; shift 2;;
     --out-parent)        OUT_PARENT="${2:-}"; shift 2;;
     --fig-parent)        FIG_PARENT="${2:-}"; shift 2;;
+    --reports-parent)    REPORTS_PARENT="${2:-}"; shift 2;;
     --task-group)        TASK_GROUP="${2:-}"; shift 2;;
 
     --deriv-root)        DERIV_ROOT="${2:-}"; shift 2;;
@@ -266,6 +288,8 @@ while [[ $# -gt 0 ]]; do
     --plot-nodes-group)  GROUP_NODES="${2:-}"; shift 2;;
     --plot-outdir-run)   PLOT_OUTDIR_RUN="${2:-}"; shift 2;;
     --plot-outdir-group) PLOT_OUTDIR_GROUP="${2:-}"; shift 2;;
+    --report-output)     REPORT_OUTPUT="${2:-}"; shift 2;;
+    --report-thr-suffix) REPORT_THR_SUFFIX="${2:-}"; shift 2;;
 
     --contrasts)         CONTRASTS="${2:-}"; shift 2;;
     --tasks)             TASKS="${2:-}"; shift 2;;
@@ -305,6 +329,7 @@ if [[ -n "${TASK_GROUP}" ]]; then
   OUT_PARENT="${OUT_PARENT%/}/${TASK_GROUP}"
   FIG_PARENT="${FIG_PARENT%/}/${TASK_GROUP}"
   MODELS_DIR="${MODELS_DIR%/}/${TASK_GROUP}"
+  REPORTS_PARENT="${REPORTS_PARENT%/}/${TASK_GROUP}"
 fi
 
 # ----------------------------------------
@@ -375,6 +400,9 @@ OUT_SUFFIX="${MODEL}_s${KERNEL_MM}"
 OUT_DIR="${OUT_PARENT}/${OUT_SUFFIX}"
 WORK_DIR="${WORK_ROOT}/work_fitlins/work_fitlins_tmp_${OUT_SUFFIX}"
 REPORT_GLOB_PATTERN="${OUT_DIR}/reports/model-*.html"
+AUTO_REPORT_THR_SUFFIX="$(build_thr_suffix)"
+[[ -n "${REPORT_THR_SUFFIX}" ]] || REPORT_THR_SUFFIX="${AUTO_REPORT_THR_SUFFIX}"
+[[ -n "${REPORT_OUTPUT}" ]] || REPORT_OUTPUT="${REPORTS_PARENT}/${OUT_SUFFIX}__${REPORT_THR_SUFFIX}.pdf"
 
 # ----------------------------------------
 # Build flag arrays for plot_fmri_statmaps.py
@@ -457,6 +485,8 @@ WORK_DIR:     ${WORK_DIR}
 PLOT_GLOB:    ${PLOT_GLOB}
 NODES_RUN:    ${NODES_RUN}
 GROUP_NODES:  ${GROUP_NODES}
+REPORT_OUTPUT: ${REPORT_OUTPUT}
+REPORT_THR_SUFFIX: ${REPORT_THR_SUFFIX}
 
 CONTRASTS:    ${CONTRASTS}
 TASKS:        ${TASKS:-<all>}
@@ -668,8 +698,27 @@ if has_step "plot-group"; then
 fi
 
 # ----------------------------------------
+# Step: report
+# ----------------------------------------
+if has_step "report"; then
+  [[ -f "${REPORT_PY}" ]] || die "generate_model_report.py not found: ${REPORT_PY}"
+  [[ -n "${TASK_GROUP}" ]] || die "TASK_GROUP is required for the report step"
+
+  mkdir -p "$(dirname "${REPORT_OUTPUT}")"
+
+  run_cmd python3 "${REPORT_PY}" \
+    --task-group "${TASK_GROUP}" \
+    --models "${MODEL}" \
+    --work-root "${WORK_ROOT}" \
+    --kernel "${KERNEL_MM}" \
+    --thr-suffix "${REPORT_THR_SUFFIX}" \
+    --output "${REPORT_OUTPUT}"
+fi
+
+# ----------------------------------------
 echo
 echo "== DONE =="
 echo "Outputs: ${OUT_DIR}"
 echo "Figures: ${FIG_PARENT}/${OUT_SUFFIX}/"
+echo "Report:  ${REPORT_OUTPUT}"
 echo "Group:   ${TASK_GROUP:-<none>}"

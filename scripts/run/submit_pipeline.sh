@@ -23,7 +23,8 @@
 #   SLURM_QOS=""               # QoS name if required
 #
 # Design notes:
-#   - run_pipeline.sh is NOT modified; this wrapper simply calls it inside sbatch.
+#   - run_pipeline.sh owns the actual analysis/report steps; this wrapper simply
+#     calls it inside sbatch.
 #   - Resources (--cpus-per-task, --mem) are derived from NCPUS / MEM_GB, which
 #     are already defined in your per-model config files.
 #   - A timestamped sbatch script is written to LOGS_DIR for full reproducibility:
@@ -65,7 +66,7 @@ NO_SUBMIT="0"               # set to 1 with --no-submit to write script but not 
 
 # Log directory for sbatch scripts and SLURM stdout/stderr.
 # Override with --logs-dir or LOGS_DIR= in your config file.
-LOGS_DIR="/data/sld/homes/vguigon/work/slurm_logs"
+LOGS_DIR="/data/sld/homes/vguigon/slb_work/slurm_logs"
 
 # ---------------------------------------------------------------------------
 # Config file loading (must mirror run_pipeline.sh so NCPUS / MEM_GB are set
@@ -113,6 +114,9 @@ Examples:
 
   # Override time limit and partition:
   $(basename "$0") --config configs/tmth.cfg --slurm-time 12:00:00 --slurm-partition long
+
+  # Submit plotting plus PDF report generation:
+  $(basename "$0") --config configs/tmth.cfg --steps plot-run,plot-group,report
 
   # Write the sbatch script for inspection without running:
   $(basename "$0") --config configs/tmth.cfg --no-submit

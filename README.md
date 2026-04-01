@@ -1,6 +1,6 @@
 # FitLins fMRI Analysis Pipeline
 
-GLM-based fMRI analysis pipeline for the SLB dataset, built around FitLins and a patched Apptainer container. The pipeline runs subject-level and group-level analyses from preprocessed fMRIPrep outputs through to thresholded statistical maps and HTML reports.
+GLM-based fMRI analysis pipeline for the SLB dataset, built around FitLins and a patched Apptainer container. The pipeline runs subject-level and group-level analyses from preprocessed fMRIPrep outputs through to thresholded statistical maps, patched HTML reports, user-facing PDF reports, and per-task-group analysis indexes.
 
 ---
 
@@ -28,10 +28,15 @@ work/
   fitlins_configs/          Config files (*. cfg), one per analysis
   fitlins_derivatives/      FitLins outputs (statmaps, reports)
   figures/                  Thresholded statistical maps (PNG) and manifests
+  reports/                  Generated PDF model reports, namespaced by task group
+  docs/
+    dictionaries/           CSV data dictionaries used by event-building scripts
+    indexes/                Per-task-group analysis indexes (.md + .json)
   slurm_logs/               SLURM sbatch scripts and job logs
   scripts/
     build/                  Data preparation scripts (run once before analysis)
     run/                    Pipeline execution scripts (main entry points)
+    report/                 PDF report and analysis index generators
     validate/               Validation scripts
 ```
 
@@ -51,12 +56,19 @@ work/
 
 | Script                   | Purpose                                                                       |
 | ------------------------ | ----------------------------------------------------------------------------- |
-| `run_pipeline.sh`        | **Main entry point.** Orchestrates FitLins → report fix → plotting            |
+| `run_pipeline.sh`        | **Main entry point.** Orchestrates FitLins → report fix → plotting → optional PDF report generation |
 | `submit_pipeline.sh`     | SLURM wrapper for `run_pipeline.sh`                                           |
 | `run_fitlins_models.sh`  | Low-level FitLins runner inside the container (called by `run_pipeline.sh`)   |
 | `parse_model.py`         | Parse a model JSON to extract subjects, contrasts, nodes, stat type           |
 | `fix_fitlins_reports.py` | Post-hoc patcher for FitLins HTML reports                                     |
 | `plot_fmri_statmaps.py`  | Nilearn-based stat map plotter (glass brain, slices, 3D HTML, cluster tables) |
+
+**`scripts/report/`** — reporting and indexing
+
+| Script                      | Purpose                                                                 |
+| --------------------------- | ----------------------------------------------------------------------- |
+| `generate_model_report.py`  | Build PDF reports from FitLins outputs, manifests, and run-report figures |
+| `build_analysis_index.py`   | Build per-task-group analysis indexes in Markdown and JSON              |
 
 **`scripts/validate/`** — validation
 
@@ -223,7 +235,7 @@ SLURM_MAIL_TYPE="END,FAIL"
 #### Without SLURM (login node)
 
 ```bash
-# Full pipeline: FitLins -> fix report -> plot run-level -> plot group-level
+# Full pipeline: FitLins -> fix report -> plot run-level -> plot group-level -> PDF report
 run_pipeline.sh --config fitlins_configs/my_model.cfg --steps all
 
 # Rerun FitLins even if output directory already exists
@@ -231,6 +243,9 @@ run_pipeline.sh --config fitlins_configs/my_model.cfg --steps all --force
 
 # Plot only (FitLins already ran)
 run_pipeline.sh --config fitlins_configs/my_model.cfg --steps plot-run,plot-group
+
+# Plot and generate the PDF report
+run_pipeline.sh --config fitlins_configs/my_model.cfg --steps plot-run,plot-group,report
 
 # Plot with interactive 3D HTML viewers
 run_pipeline.sh --config fitlins_configs/my_model.cfg --steps plot-run,plot-group --view3d
@@ -247,6 +262,9 @@ run_pipeline.sh --config fitlins_configs/my_model.cfg --thr-mode fixed --thr-fix
 # Submit full pipeline
 submit_pipeline.sh --config fitlins_configs/my_model.cfg --steps all
 
+# Submit plotting plus PDF report generation
+submit_pipeline.sh --config fitlins_configs/my_model.cfg --steps plot-run,plot-group,report
+
 # Inspect the sbatch script without submitting
 submit_pipeline.sh --config fitlins_configs/my_model.cfg --no-submit
 
@@ -262,6 +280,9 @@ submit_pipeline.sh --config fitlins_configs/my_model.cfg --steps fitlins
 
 # Then plot directly once the job finishes
 run_pipeline.sh --config fitlins_configs/my_model.cfg --steps plot-run,plot-group
+
+# Or plot and build the PDF report directly
+run_pipeline.sh --config fitlins_configs/my_model.cfg --steps plot-run,plot-group,report
 ```
 
 ---
@@ -274,6 +295,7 @@ run_pipeline.sh --config fitlins_configs/my_model.cfg --steps plot-run,plot-grou
 | `fixreport`  | Patches the HTML report: fixes broken image paths and embeds all figures (design matrices, correlation matrices, contrast maps) as base64 so the report is self-contained |
 | `plot-run`   | Plots run-level stat maps for all subjects                                                                                                                                |
 | `plot-group` | Plots all group-level nodes; loops over multiple nodes automatically                                                                                                      |
+| `report`     | Builds a PDF report under `reports/<task_group>/` via `scripts/report/generate_model_report.py`                                                                         |
 | `all`        | All of the above in order                                                                                                                                                 |
 
 Pass as comma-separated values to `--steps`. Default is `all`.
@@ -371,3 +393,34 @@ The figure directory name encodes the threshold mode, value, and sidedness, e.g.
 `manifest.tsv` records every stat map processed, the threshold applied, the threshold value, and the paths to all output figures. It is the authoritative record of what was plotted and how.
 
 The 3D HTML viewers (`.html`) can be opened with VSCode Live Server over SSH without a Jupyter tunnel.
+
+---
+
+## PDF Reports And Analysis Indexes
+
+`run_pipeline.sh` and `submit_pipeline.sh` now support a `report` step, which calls `scripts/report/generate_model_report.py` to build user-facing PDF summaries under `reports/<task_group>/`.
+
+Typical examples:
+
+```bash
+run_pipeline.sh --config /data/sld/homes/vguigon/slb_work/fitlins_configs/tmth/tmth_visual_vs_baseline.cfg \
+  --steps plot-run,plot-group,report
+
+submit_pipeline.sh --config /data/sld/homes/vguigon/slb_work/fitlins_configs/tmth/tmth_visual_vs_baseline.cfg \
+  --steps plot-run,plot-group,report
+```
+
+Analysis indexes are generated separately with `scripts/report/build_analysis_index.py`. For each task group, the script writes:
+
+- `docs/indexes/<task_group>_analysis_index.md`
+- `docs/indexes/<task_group>_analysis_index.json`
+
+The Markdown index is human-readable and contains a summary table with the GLM, contrasts, and report path per model. The JSON file is the machine-readable companion payload.
+
+The documentation folder is organized as:
+
+```
+docs/
+  dictionaries/   CSV data dictionaries used by event-building scripts
+  indexes/        Per-task-group analysis indexes (.md + .json)
+```

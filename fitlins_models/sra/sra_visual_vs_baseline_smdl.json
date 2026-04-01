@@ -1,5 +1,5 @@
 {
-  "Name": "sraSelfChoiceVsITI",
+  "Name": "sraSelfDecisionVsITI",
   "BIDSModelVersion": "1.0.0",
   "Input": {
     "task": ["riskself"],
@@ -34,7 +34,7 @@
       },
       "Contrasts": [
         {
-          "Name": "selfChoiceVsITI",
+          "Name": "selfDecisionVsITI",
           "ConditionList": [
             "trial_type.self_choice",
             "trial_type.self_iti"

@@ -11,7 +11,7 @@ This script fixes *presentation-only* issues in FitLins HTML reports
 without touching any modeling outputs. It addresses two recurring problems:
 
 1) Broken image/link paths in reports generated inside containers
-   (e.g. paths starting with /work/, ../work/, or absolute /node-runLevel/...).
+   (e.g. paths starting with /slb_work/, ../slb_work/, or absolute /node-runLevel/...).
 
 2) Spurious "Missing contrast skipped (--drop-missing)" messages in the report
    when contrast images actually exist on disk. In those cases, the script
@@ -40,9 +40,9 @@ relative to <derivatives_root>/reports/.
 WHAT GETS FIXED
 ---------------
 Handled src/href patterns:
-  A) <absolute-deriv-root>/...           -> ../...  (works at any nesting depth)
-  B) ../work/<deriv_name>/...            -> ../...
-  C) ./work/<deriv_name>/...             -> ../...
+  A) <absolute-deriv-root>/...           -> ../...  (slb_works at any nesting depth)
+  B) ../slb_work/<deriv_name>/...            -> ../...
+  C) ./slb_work/<deriv_name>/...             -> ../...
   D) /node-runLevel/... or /reports/...  -> ../node-runLevel/...
 
 External links (http, https), data URIs, and anchors (#) are left untouched.
@@ -87,8 +87,8 @@ def rewrite_src_href_paths(html, report_path):
          layout fitlins_derivatives/tmth/<name>/ equally)
          -> ../...
 
-      B) Container-relative with work prefix: ../work/<deriv_name>/... or
-         ./work/<deriv_name>/... (legacy fallback patterns)
+      B) Container-relative with slb_work prefix: ../slb_work/<deriv_name>/... or
+         ./slb_work/<deriv_name>/... (legacy fallback patterns)
          -> ../...
 
       C) Root-absolute within derivatives tree: /node-runLevel/... or /reports/...
@@ -113,7 +113,7 @@ def rewrite_src_href_paths(html, report_path):
                 return "../" + tail
             return None
 
-        # A) Absolute path of the actual derivatives root (works at any nesting depth).
+        # A) Absolute path of the actual derivatives root (slb_works at any nesting depth).
         #    Because bind mounts make container paths == host paths, this handles both
         #    flat layout (.../fitlins_derivatives/<name>/) and namespaced layout
         #    (.../fitlins_derivatives/tmth/<name>/) without hardcoding.
@@ -121,37 +121,37 @@ def rewrite_src_href_paths(html, report_path):
         if out is not None:
             return out
 
-        # B) Container-relative with work prefix (legacy fallback): ../work/... or ./work/...
-        for pref in ("../work/", "./work/"):
+        # B) Container-relative with slb_work prefix (legacy fallback): ../slb_work/... or ./slb_work/...
+        for pref in ("../slb_work/", "./slb_work/"):
             if val.startswith(pref):
-                # Namespaced: ../work/fitlins_derivatives/<task_group>/<deriv_name>/...
+                # Namespaced: ../slb_work/fitlins_derivatives/<task_group>/<deriv_name>/...
                 # Find the task_group component (parent of deriv_name) from deriv_abs
                 _task_group_prefix = pref + "fitlins_derivatives/" + deriv_root.parent.name + "/" + deriv_name + "/"
                 out = strip_to_reports(_task_group_prefix)
                 if out is not None:
                     return out
-                # Flat: ../work/fitlins_derivatives/<deriv_name>/...
+                # Flat: ../slb_work/fitlins_derivatives/<deriv_name>/...
                 out = strip_to_reports(pref + "fitlins_derivatives/" + deriv_name + "/")
                 if out is not None:
                     return out
-                # Oldest: ../work/<deriv_name>/...
+                # Oldest: ../slb_work/<deriv_name>/...
                 out = strip_to_reports(pref + deriv_name + "/")
                 if out is not None:
                     return out
                 return val
 
-        # C) Container absolute /work/... (legacy fallback)
-        if val.startswith("/work/"):
-            # Namespaced: /work/fitlins_derivatives/<task_group>/<deriv_name>/...
-            out = strip_to_reports("/work/fitlins_derivatives/" + deriv_root.parent.name + "/" + deriv_name + "/")
+        # C) Container absolute /slb_work/... (legacy fallback)
+        if val.startswith("/slb_work/"):
+            # Namespaced: /slb_work/fitlins_derivatives/<task_group>/<deriv_name>/...
+            out = strip_to_reports("/slb_work/fitlins_derivatives/" + deriv_root.parent.name + "/" + deriv_name + "/")
             if out is not None:
                 return out
-            # Flat: /work/fitlins_derivatives/<deriv_name>/...
-            out = strip_to_reports("/work/fitlins_derivatives/" + deriv_name + "/")
+            # Flat: /slb_work/fitlins_derivatives/<deriv_name>/...
+            out = strip_to_reports("/slb_work/fitlins_derivatives/" + deriv_name + "/")
             if out is not None:
                 return out
-            # Oldest: /work/<deriv_name>/...
-            out = strip_to_reports("/work/" + deriv_name + "/")
+            # Oldest: /slb_work/<deriv_name>/...
+            out = strip_to_reports("/slb_work/" + deriv_name + "/")
             if out is not None:
                 return out
             return val

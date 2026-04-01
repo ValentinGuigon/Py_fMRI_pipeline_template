@@ -24,10 +24,10 @@ import pandas as pd
 
 # ---------- Paths ----------
 BEHAV_ROOT = Path("/data/sld/homes/collab/slb/behav_data/fMRI/data")
-BIDS_ROOT = Path("/data/sld/homes/vguigon/work/slb_bids_runs")
+BIDS_ROOT = Path("/data/sld/homes/vguigon/slb_work/slb_bids_runs")
 
 # ---------- Data dictionary ----------
-TRUST_DICT = Path("/data/sld/homes/vguigon/work/docs/Trust-DataDictionaryfMRI.csv")
+TRUST_DICT = Path("/data/sld/homes/vguigon/slb_work/docs/dictionaries/Trust-DataDictionaryfMRI.csv")
 
 TASK_RUNS = [
     # (condition folder, run folder name, BIDS task label, BIDS run label)
