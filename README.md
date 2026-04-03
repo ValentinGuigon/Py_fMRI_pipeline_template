@@ -176,6 +176,16 @@ python3 add_sra_button_press_events.py \
 
 All three scripts add the same three delta event types per button press (`button_press`, `button_press_left`, `button_press_right`) and can be run independently — you do not need to generate all tasks at once.
 
+### 4. Make shell scripts executable
+
+The shell scripts will not have the executable bit set. Run this once:
+
+```bash
+chmod +x scripts/run/*.sh scripts/build/*.sh
+```
+
+Alternatively, invoke scripts explicitly with `bash` (e.g. `bash run_pipeline.sh ...`) to bypass the need for the executable bit.
+
 ---
 
 ## Running an analysis
